@@ -57,7 +57,7 @@ export const DASHBOARD_SIDEBAR_BOTTOM_LINKS = [
 	},
 	{
 		key: 'support',
-		label: 'Help & Support',
+		label: 'How to use?',
 		path: '/support',
 		icon: <HiOutlineQuestionMarkCircle />
 	}

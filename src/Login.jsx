@@ -1,10 +1,10 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { db, auth } from './firebase';  // Firebase configuration file
-import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from "firebase/auth"; // Correct import for auth
-import { setDoc, doc } from "firebase/firestore"; 
+import { db, auth } from './firebase'; 
+import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from "firebase/auth";
+import { setDoc, doc } from "firebase/firestore";
 
-export const Login = () => {
+export const Login = ({ setIsAuthenticated }) => {
   const name = useRef();
   const email = useRef();
   const password = useRef();
@@ -12,7 +12,7 @@ export const Login = () => {
   const shoplogo = useRef();
   const typeofshop = useRef();
   const [showHome, setShowHome] = useState(false);
-  const [show, setShow] = useState(true);
+  const [show, setShow] = useState(true); // True for login, false for registration
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -24,12 +24,14 @@ export const Login = () => {
 
   const handleClick = async (e) => {
     e.preventDefault();
-    if (name.current.value && email.current.value && password.current.value && shopname.current.value && typeofshop.current.value) {
+
+    // Proceed with registration only if in registration mode
+    if (!show && name.current.value && email.current.value && password.current.value && shopname.current.value && typeofshop.current.value) {
       try {
         // Create user with email and password
         const userCredential = await createUserWithEmailAndPassword(auth, email.current.value, password.current.value);
         const user = userCredential.user;
-  
+
         // Save additional user data to Firestore
         await setDoc(doc(db, "users", user.uid), {
           name: name.current.value,
@@ -37,43 +39,45 @@ export const Login = () => {
           shopname: shopname.current.value,
           typeofshop: typeofshop.current.value
         });
-  
+
         alert("Account created successfully!!");
-        navigate("/");
+        loginLink(); // Switch back to the login form
       } catch (error) {
         alert(error.message);
       }
+    } else {
+      alert("Please fill all fields in the registration form.");
     }
-  };
-  
+  };    
+
   const handleSignIn = async (e) => {
     e.preventDefault();
-    try {
+    try {    
       const userCredential = await signInWithEmailAndPassword(auth, email.current.value, password.current.value);
-      const user = userCredential.user;
-      navigate("/dashboard");
+      const user = userCredential.user;  
+
+      // Mark user as authenticated
+      setIsAuthenticated(true); 
+      navigate("/"); // Redirect to home page after successful login
     } catch (error) {
       alert("Please enter valid credentials!");
     }
   };
 
-  const [action, setAction] = useState('');
   const registerLink = () => {
-    setAction('active');
-    setShow(false);
+    setShow(false); // Show registration form
   };
 
   const loginLink = () => {
-    setAction('');
-    setShow(true);
+    setShow(true); // Show login form
   };
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-gray-100">
       {showHome ? (
-        navigate("/dashboard")
+        navigate("/")
       ) : (
-        <div className={`bg-white shadow-md rounded-lg p-10 w-96 h-auto ${action}`}>
+        <div className={`bg-white shadow-md rounded-lg p-10 w-96 h-auto`}>
           {show ? (
             <div className="form-box login">
               <form>
@@ -114,7 +118,7 @@ export const Login = () => {
                   <input type="file" required ref={shoplogo} className="border rounded-lg p-2 w-full" />
                 </div>
                 <div className='input-box mb-4'>
-                <select ref={typeofshop} className="border rounded-lg p-2 w-full" required>
+                  <select ref={typeofshop} className="border rounded-lg p-2 w-full" required>
                     <option value="">--Select Type Of Shop--</option>
                     <option value="Option1">Franchise</option>
                     <option value="Option2">Tea Stall</option>
@@ -127,7 +131,7 @@ export const Login = () => {
                     <option value="Option9">Paan Shop</option>
                     <option value="Option10">Vegetable Shop</option>
                     <option value="Option11">Pharmacy</option>
-                    <option value="Option12">Jwellery</option>
+                    <option value="Option12">Jewelry</option>
                     <option value="Option13">Cycle Repair Shop</option>
                     <option value="Option14">Sweet Shop</option>
                     <option value="Option15">Pet Shop</option>
@@ -140,9 +144,9 @@ export const Login = () => {
                     <option value="Option22">Electronics Shop</option>
                     <option value="Option23">Salon</option>
                     <option value="Option24">Tailor</option>
-                    <option value="Option26">Electronics Repair Shop</option>
-                    <option value="Option27">Spare Parts Dealer</option>
-                    <option value="Option28">Photo Studio</option>
+                    <option value="Option25">Electronics Repair Shop</option>
+                    <option value="Option26">Spare Parts Dealer</option>
+                    <option value="Option27">Photo Studio</option>
                   </select>
                 </div>
                 <div className="remember-forgot mb-4">
