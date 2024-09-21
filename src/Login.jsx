@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { db, auth } from './firebase'; 
-import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from "firebase/auth";
+import { createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut } from "firebase/auth";
 import { setDoc, doc } from "firebase/firestore";
 
 export const Login = ({ setIsAuthenticated }) => {
@@ -12,7 +12,7 @@ export const Login = ({ setIsAuthenticated }) => {
   const shoplogo = useRef();
   const typeofshop = useRef();
   const [showHome, setShowHome] = useState(false);
-  const [show, setShow] = useState(true); // True for login, false for registration
+  const [show, setShow] = useState(true); 
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -28,11 +28,9 @@ export const Login = ({ setIsAuthenticated }) => {
     // Proceed with registration only if in registration mode
     if (!show && name.current.value && email.current.value && password.current.value && shopname.current.value && typeofshop.current.value) {
       try {
-        // Create user with email and password
         const userCredential = await createUserWithEmailAndPassword(auth, email.current.value, password.current.value);
         const user = userCredential.user;
 
-        // Save additional user data to Firestore
         await setDoc(doc(db, "users", user.uid), {
           name: name.current.value,
           email: email.current.value,
@@ -41,7 +39,7 @@ export const Login = ({ setIsAuthenticated }) => {
         });
 
         alert("Account created successfully!!");
-        loginLink(); // Switch back to the login form
+        loginLink(); 
       } catch (error) {
         alert(error.message);
       }
@@ -56,16 +54,25 @@ export const Login = ({ setIsAuthenticated }) => {
       const userCredential = await signInWithEmailAndPassword(auth, email.current.value, password.current.value);
       const user = userCredential.user;  
 
-      // Mark user as authenticated
       setIsAuthenticated(true); 
-      navigate("/"); // Redirect to home page after successful login
+      navigate("/"); 
     } catch (error) {
-      alert("Please enter valid credentials!");
+      alert("User not Found!");
+    }
+  };
+
+  const handleLogout = async () => {
+    try {
+      await signOut(auth); 
+      setIsAuthenticated(false); 
+      navigate('/login'); 
+    } catch (error) {
+      alert("Error logging out: " + error.message);
     }
   };
 
   const registerLink = () => {
-    setShow(false); // Show registration form
+    setShow(false); 
   };
 
   const loginLink = () => {
@@ -75,7 +82,12 @@ export const Login = ({ setIsAuthenticated }) => {
   return (
     <div className="flex items-center justify-center min-h-screen bg-gray-100">
       {showHome ? (
-        navigate("/")
+        <div className="flex flex-col items-center">
+          <h1 className="text-2xl font-bold">Welcome Back!</h1>
+          <button onClick={handleLogout} className="mt-4 bg-red-500 text-white p-2 rounded-lg hover:bg-red-600">
+            Logout
+          </button>
+        </div>
       ) : (
         <div className={`bg-white shadow-md rounded-lg p-10 w-96 h-auto`}>
           {show ? (

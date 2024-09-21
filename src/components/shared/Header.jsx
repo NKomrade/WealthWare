@@ -3,9 +3,20 @@ import { Menu, Popover, Transition } from '@headlessui/react'
 import { HiOutlineBell, HiOutlineSearch, HiOutlineChatAlt } from 'react-icons/hi'
 import { useNavigate } from 'react-router-dom'
 import classNames from 'classnames'
+import { auth } from '../../firebase' 
+import { signOut } from 'firebase/auth' 
 
 export default function Header() {
 	const navigate = useNavigate()
+
+	const handleSignOut = async () => {
+		try {
+			await signOut(auth) 
+			navigate('/login') 
+		} catch (error) {
+			console.error("Sign out error: ", error)
+		}
+	}
 
 	return (
 		<div className="bg-white h-16 px-4 flex items-center border-b border-gray-200 justify-between">
@@ -86,7 +97,7 @@ export default function Header() {
 								className="h-10 w-10 rounded-full bg-sky-500 bg-cover bg-no-repeat bg-center"
 								style={{ backgroundImage: 'url("https://source.unsplash.com/80x80?face")' }}
 							>
-								<span className="sr-only">Marc Backes</span>
+								<span className="sr-only">User Profile</span>
 							</div>
 						</Menu.Button>
 					</div>
@@ -107,8 +118,7 @@ export default function Header() {
 										className={classNames(
 											active && 'bg-gray-100',
 											'active:bg-gray-200 rounded-sm px-4 py-2 text-gray-700 cursor-pointer focus:bg-gray-200'
-										)}
-									>
+										)}>
 										Your Profile
 									</div>
 								)}
@@ -129,6 +139,7 @@ export default function Header() {
 							<Menu.Item>
 								{({ active }) => (
 									<div
+										onClick={handleSignOut}
 										className={classNames(
 											active && 'bg-gray-100',
 											'active:bg-gray-200 rounded-sm px-4 py-2 text-gray-700 cursor-pointer focus:bg-gray-200'
