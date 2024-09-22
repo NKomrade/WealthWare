@@ -103,11 +103,11 @@ const Products = () => {
           <tr>
             <th className="border border-gray-400 p-2">Product ID</th>
             <th className="border border-gray-400 p-2">Name</th>
-            <th className="border border-gray-400 p-2 text-green-500">Price (in Rs.)</th>
+            <th className="border border-gray-400 p-2">Price (in Rs.)</th>
             <th className="border border-gray-400 p-2">Quantity</th>
 						<th className="border border-gray-400 p-2">Description</th>
             <th className="border border-gray-400 p-2">Date of Purchase</th>
-            <th className="border border-gray-400 p-2 text-red-500">Expiry Date</th>
+            <th className="border border-gray-400 p-2">Expiry Date</th>
           </tr>
         </thead>
         <tbody>
@@ -116,7 +116,7 @@ const Products = () => {
               <tr key={index}>
                 <td className="border border-gray-400 p-2">{product.id}</td>
                 <td className="border border-gray-400 p-2">{product.name}</td>
-                <td className="border border-gray-400 p-2 text-green-500">{product.price}</td>
+                <td className="border border-gray-400 p-2 text-green-500">₹ {product.price}</td>
                 <td className="border border-gray-400 p-2">{product.quantity}</td>
 								<td className="border border-gray-400 p-2">{product.description}</td>
                 <td className="border border-gray-400 p-2">{product.purchaseDate}</td>
