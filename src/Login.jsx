@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { db, auth } from './firebase'; 
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut } from "firebase/auth";
 import { setDoc, doc } from "firebase/firestore";
+import { AiOutlineEye, AiOutlineEyeInvisible } from 'react-icons/ai';
 
 export const Login = ({ setIsAuthenticated }) => {
   const name = useRef();
@@ -13,6 +14,8 @@ export const Login = ({ setIsAuthenticated }) => {
   const typeofshop = useRef();
   const [showHome, setShowHome] = useState(false);
   const [show, setShow] = useState(true); 
+  const [showPasswordLogin, setShowPasswordLogin] = useState(false);
+  const [showPasswordRegister, setShowPasswordRegister] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -24,8 +27,6 @@ export const Login = ({ setIsAuthenticated }) => {
 
   const handleClick = async (e) => {
     e.preventDefault();
-
-    // Proceed with registration only if in registration mode
     if (!show && name.current.value && email.current.value && password.current.value && shopname.current.value && typeofshop.current.value) {
       try {
         const userCredential = await createUserWithEmailAndPassword(auth, email.current.value, password.current.value);
@@ -76,7 +77,7 @@ export const Login = ({ setIsAuthenticated }) => {
   };
 
   const loginLink = () => {
-    setShow(true); // Show login form
+    setShow(true); 
   };
 
   return (
@@ -98,7 +99,20 @@ export const Login = ({ setIsAuthenticated }) => {
                   <input type="text" placeholder='Email' required ref={email} className="border rounded-lg p-2 w-full" />
                 </div>
                 <div className='input-box mb-4 relative'>
-                  <input type="password" placeholder='Password' required ref={password} className="border rounded-lg p-2 w-full" />
+                  <input
+                    type={showPasswordLogin ? "text" : "password"}
+                    placeholder='Password'
+                    required
+                    ref={password}
+                    className="border rounded-lg p-2 w-full"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPasswordLogin(!showPasswordLogin)}
+                    className="absolute right-2 top-2"
+                  >
+                    {showPasswordLogin ? <AiOutlineEyeInvisible size={24} /> : <AiOutlineEye size={24} />}
+                  </button>
                 </div>
                 <div className="remember-forgot flex justify-between mb-4">
                   <label><input type="checkbox" /> Remember me</label>
@@ -120,8 +134,21 @@ export const Login = ({ setIsAuthenticated }) => {
                 <div className='input-box mb-4'>
                   <input type="email" placeholder='Email' required ref={email} className="border rounded-lg p-2 w-full" />
                 </div>
-                <div className='input-box mb-4'>
-                  <input type="password" placeholder='Password' required ref={password} className="border rounded-lg p-2 w-full" />
+                <div className='input-box mb-4 relative'>
+                  <input
+                    type={showPasswordRegister ? "text" : "password"}
+                    placeholder='Password'
+                    required
+                    ref={password}
+                    className="border rounded-lg p-2 w-full"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPasswordRegister(!showPasswordRegister)}
+                    className="absolute right-2 top-2"
+                  >
+                    {showPasswordRegister ? <AiOutlineEyeInvisible size={24} /> : <AiOutlineEye size={24} />}
+                  </button>
                 </div>
                 <div className='input-box mb-4'>
                   <input type="text" placeholder='Name of your Shop' required ref={shopname} className="border rounded-lg p-2 w-full" />
@@ -159,6 +186,9 @@ export const Login = ({ setIsAuthenticated }) => {
                     <option value="Option25">Electronics Repair Shop</option>
                     <option value="Option26">Spare Parts Dealer</option>
                     <option value="Option27">Photo Studio</option>
+                    <option value="Option28">Toy Shop</option>
+                    <option value="Option29">Clothes Shop</option>
+                    <option value="Option30">Shopping Mart</option>
                   </select>
                 </div>
                 <div className="remember-forgot mb-4">
