@@ -1,96 +1,51 @@
-import React from 'react'
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
+import React from 'react';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Area } from 'recharts';
 
 const data = [
-	{
-		name: 'Jan',
-		Expense: 4000,
-		Income: 2400
-	},
-	{
-		name: 'Feb',
-		Expense: 3000,
-		Income: 1398
-	},
-	{
-		name: 'Mar',
-		Expense: 2000,
-		Income: 9800
-	},
-	{
-		name: 'Apr',
-		Expense: 2780,
-		Income: 3908
-	},
-	{
-		name: 'May',
-		Expense: 1890,
-		Income: 4800
-	},
-	{
-		name: 'Jun',
-		Expense: 2390,
-		Income: 3800
-	},
-	{
-		name: 'July',
-		Expense: 3490,
-		Income: 4300
-	},
-	{
-		name: 'Aug',
-		Expense: 2000,
-		Income: 9800
-	},
-	{
-		name: 'Sep',
-		Expense: 2780,
-		Income: 3908
-	},
-	{
-		name: 'Oct',
-		Expense: 1890,
-		Income: 4800
-	},
-	{
-		name: 'Nov',
-		Expense: 2390,
-		Income: 3800
-	},
-	{
-		name: 'Dec',
-		Expense: 3490,
-		Income: 4300
-	}
-]
+  { name: 'Jan', uv: 200, pv: 240 },
+  { name: 'Feb', uv: 250, pv: 300 },
+  { name: 'Mar', uv: 300, pv: 380 },
+  { name: 'Apr', uv: 400, pv: 410 },
+  { name: 'May', uv: 500, pv: 490 },
+  { name: 'Jun', uv: 350, pv: 320 },
+  { name: 'Jul', uv: 300, pv: 250 },
+  { name: 'Aug', uv: 250, pv: 230 },
+  { name: 'Sep', uv: 200, pv: 210 },
+  { name: 'Oct', uv: 220, pv: 240 },
+  { name: 'Nov', uv: 240, pv: 260 },
+  { name: 'Dec', uv: 260, pv: 300 }
+];
 
 export default function TransactionChart() {
-	return (
-		<div className="h-[22rem] bg-white p-4 rounded-sm border border-gray-200 flex flex-col flex-1">
-			<strong className="text-gray-700 font-medium">Transactions</strong>
-			<div className="mt-3 w-full flex-1 text-xs">
-				<ResponsiveContainer width="100%" height="100%">
-					<BarChart
-						width={500}
-						height={300}
-						data={data}
-						margin={{
-							top: 20,
-							right: 10,
-							left: -10,
-							bottom: 0
-						}}
-					>
-						<CartesianGrid strokeDasharray="3 3 0 0" vertical={false} />
-						<XAxis dataKey="name" />
-						<YAxis />
-						<Tooltip />
-						<Legend />
-						<Bar dataKey="Income" fill="#71C12A " />
-						<Bar dataKey="Expense" fill="#C12A2A" />
-					</BarChart>
-				</ResponsiveContainer>
-			</div>
-		</div>
-	)
+  return (
+    <div className="bg-white p-6 rounded-xl shadow-md w-full">
+      <h2 className="text-xl font-semibold text-gray-800 mb-4">Monthly Sales and Profit Overview</h2>
+      <p className="text-sm text-gray-600 mb-4">( +10 ) more in 2021</p>
+      <div className="mt-3 w-full h-[22rem]">
+        <ResponsiveContainer width="100%" height="100%">
+          <LineChart data={data} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
+            <defs>
+              <linearGradient id="salesGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                <stop offset="0%" stopColor="#007bff" stopOpacity={0.5} />
+                <stop offset="100%" stopColor="#007bff" stopOpacity={0} />
+              </linearGradient>
+              <linearGradient id="profitGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                <stop offset="0%" stopColor="#00c49f" stopOpacity={0.5} />
+                <stop offset="100%" stopColor="#00c49f" stopOpacity={0} />
+              </linearGradient>
+            </defs>
+            <CartesianGrid strokeDasharray="3 3" />
+            <XAxis dataKey="name" angle={-30} textAnchor="end" />
+            <YAxis domain={[0, 600]} tickCount={5} />
+            <Tooltip />
+            <Legend />
+            <Line type="monotone" dataKey="uv" stroke="#007bff" dot={{ stroke: '#007bff', strokeWidth: 2, r: 5 }} />
+            <Line type="monotone" dataKey="pv" stroke="#00c49f" dot={{ stroke: '#00c49f', strokeWidth: 2, r: 5 }} />
+            <Area type="monotone" dataKey="uv" stroke="#007bff" fill="url(#salesGradient)" fillOpacity={0.2} />
+            <Area type="monotone" dataKey="pv" stroke="#00c49f" fill="url(#profitGradient)" fillOpacity={0.2} />
+          </LineChart>
+        </ResponsiveContainer>
+      </div>
+    </div>
+  );
 }

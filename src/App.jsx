@@ -7,6 +7,7 @@ import Products from './pages/Products'
 import Invoices from './pages/Invoices'
 import Orders from './pages/Orders'
 import Customers from './pages/Customers'
+import Messages from './pages/Messages'
 import Login from './Login'
 
 function App() {
@@ -25,6 +26,7 @@ function App() {
                             <Route path="/invoices" element={<Invoices />} />
                             <Route path="/orders" element={<Orders />} />
                             <Route path="/customers" element={<Customers />} />
+                            <Route path="/messages" element={<Messages />} />
                         </Route>
                         <Route path="/register" element={<Register />} />
                     </>

@@ -7,7 +7,7 @@ import { auth } from '../../firebase';
 import { signOut } from 'firebase/auth';
 
 const linkClass =
-	'flex items-center gap-2 font-light px-3 py-2 hover:bg-neutral-700 hover:no-underline active:bg-neutral-600 rounded-sm text-base';
+	'flex items-center gap-2 font-light px-1 py-2 hover:bg-neutral-100 hover:no-underline rounded-lg text-base transition duration-300';
 
 export default function Sidebar() {
 	const navigate = useNavigate();
@@ -22,17 +22,22 @@ export default function Sidebar() {
 	};
 
 	return (
-		<div className="bg-[#0b1b32] w-60 p-3 flex flex-col">
-			<div className="flex items-center gap-3 px-1 py-2">
-				<img src="/Logo.png" alt="WealthWare Logo" className="w-7 h-7" />
-				<span className="text-neutral-200 text-2xl">WealthWare</span>
+		<div className="bg-white w-75 p-5 flex flex-col h-screen justify-between shadow-lg">
+			{/* Logo */}
+			<div className="flex items-center px-4 py-3">
+				<img src="/Logo.png" alt="WealthWare Logo" className="w-8 h-8" />
+				<span className="text-neutral-800 text-2xl font-bold">ealthWare</span>
 			</div>
-			<div className="py-8 flex flex-1 flex-col gap-0.5">
+
+			{/* Sidebar Links */}
+			<div className="py-5 flex-1 flex flex-col gap-2">
 				{DASHBOARD_SIDEBAR_LINKS.map((link) => (
 					<SidebarLink key={link.key} link={link} />
 				))}
 			</div>
-			<div className="flex flex-col gap-0.5 pt-2 border-t border-neutral-700">
+
+			{/* Bottom Links */}
+			<div className="flex flex-col gap-2 pt-3 border-t border-neutral-200">
 				{DASHBOARD_SIDEBAR_BOTTOM_LINKS.map((link) => (
 					<SidebarLink key={link.key} link={link} />
 				))}
@@ -53,7 +58,10 @@ function SidebarLink({ link }) {
 	return (
 		<Link
 			to={link.path}
-			className={classNames(pathname === link.path ? 'bg-[#2b2b2b] text-white' : 'text-neutral-400', linkClass)}>
+			className={classNames(
+				pathname === link.path ? 'bg-blue-500 text-white' : 'text-neutral-700 hover:bg-neutral-200',
+				'flex items-center gap-2 font-medium px-4 py-2 rounded-lg transition-all duration-300 ease-in-out'
+			)}>
 			<span className="text-xl">{link.icon}</span>
 			{link.label}
 		</Link>

@@ -81,20 +81,21 @@ export const Login = ({ setIsAuthenticated }) => {
   };
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-gray-100">
+    <div className="flex items-center justify-center min-h-screen relative">
+      <div className="absolute inset-0 bg-cover bg-center" style={{ backgroundImage: `url(${process.env.PUBLIC_URL}/login.jpg)` }}></div>
       {showHome ? (
-        <div className="flex flex-col items-center">
+        <div className="flex flex-col items-center z-10 relative">
           <h1 className="text-2xl font-bold">Welcome Back!</h1>
           <button onClick={handleLogout} className="mt-4 bg-red-500 text-white p-2 rounded-lg hover:bg-red-600">
             Logout
           </button>
         </div>
       ) : (
-        <div className={`bg-white shadow-md rounded-lg p-10 w-96 h-auto`}>
+        <div className="w-96 p-9 bg-white shadow-md rounded-lg z-10 ">
           {show ? (
             <div className="form-box login">
               <form>
-                <h1 className="text-2xl font-bold mb-4">Login</h1>
+                <h1 className="text-2xl font-bold mb-4 text-center">Login to your account</h1>
                 <div className='input-box mb-4'>
                   <input type="text" placeholder='Email' required ref={email} className="border rounded-lg p-2 w-full" />
                 </div>
@@ -159,6 +160,7 @@ export const Login = ({ setIsAuthenticated }) => {
                 <div className='input-box mb-4'>
                   <select ref={typeofshop} className="border rounded-lg p-2 w-full" required>
                     <option value="">--Select Type Of Shop--</option>
+                    {/* Options */}
                     <option value="Option1">Franchise</option>
                     <option value="Option2">Tea Stall</option>
                     <option value="Option3">Restaurant</option>
@@ -187,14 +189,11 @@ export const Login = ({ setIsAuthenticated }) => {
                     <option value="Option26">Spare Parts Dealer</option>
                     <option value="Option27">Photo Studio</option>
                     <option value="Option28">Toy Shop</option>
-                    <option value="Option29">Clothes Shop</option>
-                    <option value="Option30">Shopping Mart</option>
+                    <option value="Option29">Bicycle Shop</option>
+                    <option value="Option30">Textile Shop</option>
                   </select>
                 </div>
-                <div className="remember-forgot mb-4">
-                  <label><input type="checkbox" /> I agree to the terms & conditions</label>
-                </div>
-                <button onClick={handleClick} type="submit" className="w-full bg-blue-500 text-white p-2 rounded-lg hover:bg-blue-600">Register</button>
+                <button onClick={handleClick} className="w-full bg-blue-500 text-white p-2 rounded-lg hover:bg-blue-600">Register</button>
                 <div className="register-link text-center mt-4">
                   <p>Already have an account? <button type="button" onClick={loginLink} className="text-blue-500 hover:underline">Login</button></p>
                 </div>
@@ -206,5 +205,4 @@ export const Login = ({ setIsAuthenticated }) => {
     </div>
   );
 };
-
 export default Login;
