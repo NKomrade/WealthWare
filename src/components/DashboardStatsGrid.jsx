@@ -1,5 +1,4 @@
 import React from 'react';
-import { IoBagHandle, IoPieChart, IoPeople, IoCart } from 'react-icons/io5';
 import { useNavigate } from 'react-router-dom';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
@@ -21,60 +20,37 @@ const data = [
 export default function DashboardStatsGrid() {
   const navigate = useNavigate();
 
-  // Function to handle card click navigation
   const handleCardClick = (path) => {
     navigate(path);
   };
 
   return (
-    <div className="flex gap-6">
-      {/* Sales Stats Section */}
-      <div className="w-1/2 bg-white p-4 rounded-xl shadow-md h-full"> {/* Adjusted padding */}
-        <h2 className="text-xl font-semibold text-gray-800 mb-4">Sales Stats</h2>
-        <div className="grid grid-cols-2 gap-4">
+    <div className="flex gap-5 flex-wrap">
+      <div className="flex-1 bg-white p-2 rounded-xl shadow-md h-full">
+        <div className="grid grid-cols-3">
           <StatCard
-            icon={<IoBagHandle className="text-3xl text-white" />}
             label="Total Sales"
             value="₹1000"
             change="+8% from yesterday"
-            bgColor="bg-blue-100"
-            textColor="text-blue-500"
-            onClick={() => handleCardClick('/sales')}
+            onClick={() => handleCardClick('/salesreport')}
           />
           <StatCard
-            icon={<IoPieChart className="text-3xl text-white" />}
-            label="Total Expense"
+            label="Profit"
             value="₹300"
-            change="+5% from yesterday"
-            bgColor="bg-purple-100"
-            textColor="text-purple-500"
-            onClick={() => handleCardClick('/expenses')}
+            change="+2% from yesterday"
+            onClick={() => handleCardClick('/expensetracking')}
           />
           <StatCard
-            icon={<IoCart className="text-3xl text-white" />}
-            label="Product Sold"
-            value="5"
+            label="Products Sold"
+            value="₹5"
             change="+1.2% from yesterday"
-            bgColor="bg-blue-50"
-            textColor="text-blue-500"
-            onClick={() => handleCardClick('/products')}
-          />
-          <StatCard
-            icon={<IoPeople className="text-3xl text-white" />}
-            label="Total Customers"
-            value="8"
-            change="+0.5% from yesterday"
-            bgColor="bg-purple-50"
-            textColor="text-purple-500"
-            onClick={() => handleCardClick('/customers')}
+            onClick={() => handleCardClick('/inventory')}
           />
         </div>
       </div>
-
-      {/* Transaction Chart Section */}
-      <div className="w-1/2 bg-white p-4 rounded-xl shadow-md"> {/* Adjusted padding */}
+      <div className="flex-1 bg-white p-6 rounded-xl shadow-md min-h-[25rem]">
         <strong className="text-xl font-semibold text-gray-800 mb-4">Transactions</strong>
-        <div className="mt-3 w-full h-[20rem]"> {/* Adjusted height */}
+        <div className="mt-3 h-[20rem]">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart
               data={data}
@@ -85,7 +61,7 @@ export default function DashboardStatsGrid() {
                 bottom: 0,
               }}
             >
-              <CartesianGrid strokeDasharray="3 3 0 0" vertical={false} />
+              <CartesianGrid strokeDasharray="3 3" vertical={false} />
               <XAxis dataKey="name" />
               <YAxis />
               <Tooltip />
@@ -100,18 +76,26 @@ export default function DashboardStatsGrid() {
   );
 }
 
-function StatCard({ icon, label, value, change, bgColor, textColor, onClick }) {
+function StatCard({ label, value, change, onClick, graph }) {
   return (
     <div
-      className={`flex flex-col items-center justify-center p-4 rounded-xl shadow-sm cursor-pointer ${bgColor} ${textColor} hover:shadow-md transition-shadow duration-300`} // Fixed className
+      className={`flex flex-col justify-between bg-white shadow-sm p-4 rounded-xl transition-shadow duration-300 hover:shadow-lg cursor-pointer`}
       onClick={onClick}
     >
-      <div className="rounded-full bg-blue-500 h-12 w-12 flex items-center justify-center mb-2"> {/* Adjusted margin */}
-        {icon}
-      </div>
-      <div className="text-xl font-bold">{value}</div>
-      <div className="text-sm text-gray-500">{label}</div>
-      <div className="text-xs text-green-500">{change}</div>
+      <div className="text-gray-600 text-sm font-semibold">{label}</div>
+      <div className="text-2xl font-bold text-gray-800 mt-2">{value}</div>
+      {graph ? (
+        <div className="h-8 w-full mt-2">
+          {/* You can add a small placeholder graph here */}
+          <svg width="100%" height="100%">
+            <line x1="0" y1="20" x2="100" y2="0" stroke="#4A90E2" strokeWidth="2" />
+            <line x1="100" y1="0" x2="200" y2="20" stroke="#4A90E2" strokeWidth="2" />
+            <line x1="200" y1="20" x2="300" y2="5" stroke="#4A90E2" strokeWidth="2" />
+          </svg>
+        </div>
+      ) : (
+        <div className="text-xs text-green-500 mt-1">{change}</div>
+      )}
     </div>
   );
 }

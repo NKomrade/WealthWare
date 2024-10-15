@@ -1,38 +1,37 @@
 import {
-	HiOutlineViewGrid,
-	HiOutlineCube,
 	HiOutlineShoppingCart,
-	HiOutlineUsers,
 	HiOutlineDocumentText,
-	HiOutlineAnnotation,
 	HiOutlineQuestionMarkCircle,
 	HiOutlineCog
 } from 'react-icons/hi'
-
+import { BsHandbagFill } from "react-icons/bs";
+import { VscGraphLine } from "react-icons/vsc";
+import { RiDashboardFill } from "react-icons/ri";
+import { FaShoppingCart } from "react-icons/fa";
 export const DASHBOARD_SIDEBAR_LINKS = [
 	{
 		key: 'dashboard',
 		label: 'Dashboard',
 		path: '/',
-		icon: <HiOutlineViewGrid />
+		icon: <RiDashboardFill />
 	},
 	{
-		key: 'products',
-		label: 'Products',
-		path: '/products',
-		icon: <HiOutlineCube />
+		key: 'expensetracking',
+		label: 'Expense Tracking',
+		path: '/expensetracking',
+		icon: <FaShoppingCart />
 	},
 	{
-		key: 'orders',
-		label: 'Orders',
-		path: '/orders',
-		icon: <HiOutlineShoppingCart />
+		key: 'inventory',
+		label: 'Inventory',
+		path: '/inventory',
+		icon: <BsHandbagFill />
 	},
 	{
-		key: 'customers',
-		label: 'Customers',
-		path: '/customers',
-		icon: <HiOutlineUsers />
+		key: 'salesreport',
+		label: 'Sales Report',
+		path: '/salesreport',
+		icon: <VscGraphLine />
 	},
 	{
 		key: 'invoices',
@@ -40,12 +39,7 @@ export const DASHBOARD_SIDEBAR_LINKS = [
 		path: '/invoices',
 		icon: <HiOutlineDocumentText />
 	},
-	{
-		key: 'messages',
-		label: 'Messages',
-		path: '/messages',
-		icon: <HiOutlineAnnotation />
-	}
+	
 ]
 
 export const DASHBOARD_SIDEBAR_BOTTOM_LINKS = [

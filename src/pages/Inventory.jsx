@@ -3,7 +3,7 @@ import { collection, addDoc, getDocs } from "firebase/firestore"; // Import Fire
 import { getAuth } from "firebase/auth"; // Import Firebase Auth
 import { db } from '../firebase'; // Your Firestore instance
 
-const Products = () => {
+const Inventory = () => {
   const [showModal, setShowModal] = useState(false);
   const [products, setProducts] = useState([]);
   const [productData, setProductData] = useState({
@@ -234,4 +234,4 @@ const Products = () => {
   );
 };
 
-export default Products;
+export default Inventory;

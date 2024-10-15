@@ -1,9 +1,10 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { db, auth } from './firebase'; 
-import { createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut } from "firebase/auth";
+import { createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, signInWithPopup, GoogleAuthProvider } from "firebase/auth"; // Import GoogleAuthProvider
 import { setDoc, doc } from "firebase/firestore";
 import { AiOutlineEye, AiOutlineEyeInvisible } from 'react-icons/ai';
+import { FcGoogle } from 'react-icons/fc';
 
 export const Login = ({ setIsAuthenticated }) => {
   const name = useRef();
@@ -62,6 +63,19 @@ export const Login = ({ setIsAuthenticated }) => {
     }
   };
 
+  // Google Sign-in function
+  const handleGoogleSignIn = async () => {
+    const provider = new GoogleAuthProvider();
+    try {
+      const result = await signInWithPopup(auth, provider);
+      const user = result.user;
+      setIsAuthenticated(true); 
+      navigate("/");
+    } catch (error) {
+      alert("Error signing in with Google: " + error.message);
+    }
+  };
+
   const handleLogout = async () => {
     try {
       await signOut(auth); 
@@ -82,7 +96,17 @@ export const Login = ({ setIsAuthenticated }) => {
 
   return (
     <div className="flex items-center justify-center min-h-screen relative">
-      <div className="absolute inset-0 bg-cover bg-center" style={{ backgroundImage: `url(${process.env.PUBLIC_URL}/login.jpg)` }}></div>
+      {show && (
+        <div className="absolute inset-0 bg-cover bg-center" style={{ backgroundImage: `url(${process.env.PUBLIC_URL}/login.jpg)` }}></div>
+      )}
+      {!show && (
+        <img 
+          src={`${process.env.PUBLIC_URL}/signup.jpg`} 
+          alt="Signup Background" 
+          className="absolute left-0 top-0 w-720 h-full object-cover w-1/2" 
+        />
+      )}
+  
       {showHome ? (
         <div className="flex flex-col items-center z-10 relative">
           <h1 className="text-2xl font-bold">Welcome Back!</h1>
@@ -91,7 +115,7 @@ export const Login = ({ setIsAuthenticated }) => {
           </button>
         </div>
       ) : (
-        <div className="w-96 p-9 bg-white shadow-md rounded-lg z-10 ">
+        <div className={`w-96 p-9 bg-white rounded-lg z-10 ${!show ? "ml-96" : ""}`}>
           {show ? (
             <div className="form-box login">
               <form>
@@ -120,25 +144,36 @@ export const Login = ({ setIsAuthenticated }) => {
                   <button type="button" onClick={() => alert("Forgot password feature not implemented")} className="text-blue-500 hover:underline">Forgot password?</button>
                 </div>
                 <button onClick={handleSignIn} className="w-full bg-blue-500 text-white p-2 rounded-lg hover:bg-blue-600">Login</button>
+                {/* Google Sign-in Button */}
+                <button 
+                  type="button" 
+                  onClick={handleGoogleSignIn} 
+                  className="w-full mt-2 bg-[#4459dc] text-white p-2 rounded-lg hover:bg-[#4351cb] flex items-center justify-center">
+                  <FcGoogle className="ml-0 mr-2" size={24} />
+                  <span>Login with Google</span>
+                </button>
                 <div className="register-link text-center mt-4">
                   <p>Don't have an account? <button type="button" onClick={registerLink} className="text-blue-500 hover:underline">Register</button></p>
                 </div>
               </form>
             </div>
           ) : (
-            <div className="form-box register">
-              <form>
-                <h1 className="text-2xl font-bold mb-4">Registration</h1>
+            <div className="flex relative w-full left-20">
+              <form className = "relative left-20">
+                <h1 className="text-2xl font-bold mb-4">Create an account</h1>
                 <div className='input-box mb-4'>
-                  <input type="text" placeholder='Username' required ref={name} className="border rounded-lg p-2 w-full" />
+                  <label htmlFor="username" className="block text-gray-700 mb-1">Username</label>
+                  <input type="text" placeholder='Enter name' required ref={name} className="border rounded-lg p-2 w-full" />
                 </div>
                 <div className='input-box mb-4'>
-                  <input type="email" placeholder='Email' required ref={email} className="border rounded-lg p-2 w-full" />
+                  <label htmlFor="email" className="block text-gray-700 mb-1">Email</label>
+                  <input type="email" placeholder='person@gmail.com' required ref={email} className="border rounded-lg p-2 w-full" />
                 </div>
                 <div className='input-box mb-4 relative'>
+                  <label htmlFor="password" className="block text-gray-700 mb-1">Password</label>
                   <input
                     type={showPasswordRegister ? "text" : "password"}
-                    placeholder='Password'
+                    placeholder='Enter password'
                     required
                     ref={password}
                     className="border rounded-lg p-2 w-full"
@@ -146,20 +181,23 @@ export const Login = ({ setIsAuthenticated }) => {
                   <button
                     type="button"
                     onClick={() => setShowPasswordRegister(!showPasswordRegister)}
-                    className="absolute right-2 top-2"
+                    className="absolute right-2 top-8"
                   >
                     {showPasswordRegister ? <AiOutlineEyeInvisible size={24} /> : <AiOutlineEye size={24} />}
                   </button>
                 </div>
                 <div className='input-box mb-4'>
-                  <input type="text" placeholder='Name of your Shop' required ref={shopname} className="border rounded-lg p-2 w-full" />
+                  <label htmlFor="text" className="block text-gray-700 mb-1">Shop Name</label>
+                  <input type="text" placeholder='Enter name of your shop' required ref={shopname} className="border rounded-lg p-2 w-full" />
                 </div>
                 <div className='input-box mb-4'>
+                  <label htmlFor="file" className="block text-gray-700 mb-1">Upload logo</label>
                   <input type="file" required ref={shoplogo} className="border rounded-lg p-2 w-full" />
                 </div>
                 <div className='input-box mb-4'>
+                  <label htmlFor="typeofshop" className="block text-gray-700 mb-1">Type of shop</label>
                   <select ref={typeofshop} className="border rounded-lg p-2 w-full" required>
-                    <option value="">--Select Type Of Shop--</option>
+                    <option value="">--Select type of shop--</option>
                     {/* Options */}
                     <option value="Option1">Franchise</option>
                     <option value="Option2">Tea Stall</option>
@@ -183,18 +221,20 @@ export const Login = ({ setIsAuthenticated }) => {
                     <option value="Option20">Convenience Shop</option>
                     <option value="Option21">Mobile Repair Shop</option>
                     <option value="Option22">Electronics Shop</option>
-                    <option value="Option23">Salon</option>
-                    <option value="Option24">Tailor</option>
-                    <option value="Option25">Electronics Repair Shop</option>
-                    <option value="Option26">Spare Parts Dealer</option>
-                    <option value="Option27">Photo Studio</option>
-                    <option value="Option28">Toy Shop</option>
-                    <option value="Option29">Bicycle Shop</option>
-                    <option value="Option30">Textile Shop</option>
+                    <option value="Option23">Other</option>
                   </select>
                 </div>
                 <button onClick={handleClick} className="w-full bg-blue-500 text-white p-2 rounded-lg hover:bg-blue-600">Register</button>
-                <div className="register-link text-center mt-4">
+                {/* Google Sign-up Button */}
+                <button 
+                  type="button" 
+                  onClick={handleGoogleSignIn} 
+                  className="w-full mt-2 bg-[#4459dc] text-white p-2 rounded-lg hover:bg-[#4351cb] flex items-center justify-center"
+                >
+                  <FcGoogle className="ml-0 mr-2" size={24} /> {/* Adjust margins here */}
+                  <span>Continue with Google</span>
+                </button>
+                <div className="login-link text-center mt-4">
                   <p>Already have an account? <button type="button" onClick={loginLink} className="text-blue-500 hover:underline">Login</button></p>
                 </div>
               </form>
@@ -205,4 +245,5 @@ export const Login = ({ setIsAuthenticated }) => {
     </div>
   );
 };
+
 export default Login;

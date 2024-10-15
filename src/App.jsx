@@ -3,11 +3,10 @@ import { useState } from 'react'
 import Layout from './components/shared/Layout'
 import Register from './pages/Register'
 import Dashboard from './pages/Dashboard'
-import Products from './pages/Products'
+import Inventory from './pages/Inventory'
 import Invoices from './pages/Invoices'
-import Orders from './pages/Orders'
-import Customers from './pages/Customers'
-import Messages from './pages/Messages'
+import Expense_Tracking from './pages/Expense_Tracking'
+import Sales_Report from './pages/Sales_Report'
 import Login from './Login'
 
 function App() {
@@ -22,11 +21,10 @@ function App() {
                     <>
                         <Route path="/" element={<Layout />}>
                             <Route index element={<Dashboard />} />
-                            <Route path="/products" element={<Products />} />
+                            <Route path="/inventory" element={<Inventory />} />
                             <Route path="/invoices" element={<Invoices />} />
-                            <Route path="/orders" element={<Orders />} />
-                            <Route path="/customers" element={<Customers />} />
-                            <Route path="/messages" element={<Messages />} />
+                            <Route path="/expensetracking" element={<Expense_Tracking />} />
+                            <Route path="/salesreport" element={<Sales_Report />} />
                         </Route>
                         <Route path="/register" element={<Register />} />
                     </>

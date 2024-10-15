@@ -18,10 +18,10 @@ const data = [
 
 export default function TransactionChart() {
   return (
-    <div className="bg-white p-6 rounded-xl shadow-md w-full">
-      <h2 className="text-xl font-semibold text-gray-800 mb-4">Monthly Sales and Profit Overview</h2>
-      <p className="text-sm text-gray-600 mb-4">( +10 ) more in 2021</p>
-      <div className="mt-3 w-full h-[22rem]">
+    <div className="bg-white p-10 rounded-xl shadow-md w-[900px]"> {/* Increased width */}
+      <h2 className="text-lg font-semibold text-gray-800 mb-4">Monthly Sales and Profit Overview</h2>
+      <p className="text-sm text-gray-600 mb-2">( +10 ) more in 2021</p>
+      <div className="mt-3 w-full h-[20rem]"> {/* Adjusted height */}
         <ResponsiveContainer width="100%" height="100%">
           <LineChart data={data} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
             <defs>
