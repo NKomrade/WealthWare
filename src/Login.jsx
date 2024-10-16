@@ -141,10 +141,15 @@ export const Login = ({ setIsAuthenticated }) => {
                 </div>
                 <div className="remember-forgot flex justify-between mb-4">
                   <label><input type="checkbox" /> Remember me</label>
-                  <button type="button" onClick={() => alert("Forgot password feature not implemented")} className="text-blue-500 hover:underline">Forgot password?</button>
+                  <button
+                    type="button"
+                    onClick={() => navigate("/forgotpassword")} // Navigate to ForgotPassword page
+                    className="text-blue-500 hover:underline"
+                  >
+                    Forgot password?
+                  </button>
                 </div>
                 <button onClick={handleSignIn} className="w-full bg-blue-500 text-white p-2 rounded-lg hover:bg-blue-600">Login</button>
-                {/* Google Sign-in Button */}
                 <button 
                   type="button" 
                   onClick={handleGoogleSignIn} 
