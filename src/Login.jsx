@@ -215,18 +215,7 @@ export const Login = ({ setIsAuthenticated }) => {
                     <option value="Option9">Paan Shop</option>
                     <option value="Option10">Vegetable Shop</option>
                     <option value="Option11">Pharmacy</option>
-                    <option value="Option12">Jewelry</option>
-                    <option value="Option13">Cycle Repair Shop</option>
-                    <option value="Option14">Sweet Shop</option>
-                    <option value="Option15">Pet Shop</option>
-                    <option value="Option16">Furniture Store</option>
-                    <option value="Option17">Dry Cleaner</option>
-                    <option value="Option18">Gym</option>
-                    <option value="Option19">Stationery Shop</option>
-                    <option value="Option20">Convenience Shop</option>
-                    <option value="Option21">Mobile Repair Shop</option>
-                    <option value="Option22">Electronics Shop</option>
-                    <option value="Option23">Other</option>
+                    
                   </select>
                 </div>
                 <button onClick={handleClick} className="w-full bg-blue-500 text-white p-2 rounded-lg hover:bg-blue-600">Register</button>
