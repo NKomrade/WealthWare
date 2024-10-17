@@ -149,7 +149,7 @@ export const Login = ({ setIsAuthenticated }) => {
                     Forgot password?
                   </button>
                 </div>
-                <button onClick={handleSignIn} className="w-full bg-blue-500 text-white p-2 rounded-lg hover:bg-blue-600">Login</button>
+                <button onClick={handleSignIn} className="w-full bg-blue-900 text-white p-2 rounded-lg hover:bg-blue-600">Login</button>
                 <button 
                   type="button" 
                   onClick={handleGoogleSignIn} 
@@ -229,7 +229,7 @@ export const Login = ({ setIsAuthenticated }) => {
                     <option value="Option22">Electronics Shop</option>
                   </select>
                 </div>
-                <button onClick={handleClick} className="w-full bg-blue-500 text-white p-2 rounded-lg hover:bg-blue-600">Register</button>
+                <button onClick={handleClick} className="w-full bg-blue-900 text-white p-2 rounded-lg hover:bg-blue-600">Register</button>
                 {/* Google Sign-up Button */}
                 <button 
                   type="button" 
