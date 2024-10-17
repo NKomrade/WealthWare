@@ -121,7 +121,7 @@ export const Login = ({ setIsAuthenticated }) => {
               <form>
                 <h1 className="text-2xl font-bold mb-4 text-center">Login to your account</h1>
                 <div className='input-box mb-4'>
-                  <input type="text" placeholder='Email' required ref={email} className="border rounded-lg p-2 w-full" />
+                  <input type="text" placeholder='Email' required ref={email} className="border border-neutral-500 rounded-lg p-2 w-full" />
                 </div>
                 <div className='input-box mb-4 relative'>
                   <input
@@ -129,7 +129,7 @@ export const Login = ({ setIsAuthenticated }) => {
                     placeholder='Password'
                     required
                     ref={password}
-                    className="border rounded-lg p-2 w-full"
+                    className="border border-neutral-500 rounded-lg p-2 w-full"
                   />
                   <button
                     type="button"
@@ -143,7 +143,7 @@ export const Login = ({ setIsAuthenticated }) => {
                   <label><input type="checkbox" /> Remember me</label>
                   <button
                     type="button"
-                    onClick={() => navigate("/forgotpassword")} // Navigate to ForgotPassword page
+                    onClick={() => navigate("/forgotpassword")} 
                     className="text-blue-500 hover:underline"
                   >
                     Forgot password?
