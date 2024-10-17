@@ -168,11 +168,12 @@ export const Login = ({ setIsAuthenticated }) => {
                 <h1 className="text-2xl font-bold mb-4">Create an account</h1>
                 <div className='input-box mb-4'>
                   <label htmlFor="username" className="block text-gray-700 mb-1">Username</label>
-                  <input type="text" placeholder='Enter name' required ref={name} className="border rounded-lg p-2 w-full" />
+                  <input type="text" placeholder='Enter name' required ref={name} className="border border-neutral-500 rounded-lg p-2 w-full" 
+                  />
                 </div>
                 <div className='input-box mb-4'>
                   <label htmlFor="email" className="block text-gray-700 mb-1">Email</label>
-                  <input type="email" placeholder='person@gmail.com' required ref={email} className="border rounded-lg p-2 w-full" />
+                  <input type="email" placeholder='person@gmail.com' required ref={email} className="border border-neutral-500 rounded-lg p-2 w-full" />
                 </div>
                 <div className='input-box mb-4 relative'>
                   <label htmlFor="password" className="block text-gray-700 mb-1">Password</label>
@@ -181,7 +182,7 @@ export const Login = ({ setIsAuthenticated }) => {
                     placeholder='Enter password'
                     required
                     ref={password}
-                    className="border rounded-lg p-2 w-full"
+                    className="border border-neutral-500 rounded-lg p-2 w-full"
                   />
                   <button
                     type="button"
@@ -193,15 +194,15 @@ export const Login = ({ setIsAuthenticated }) => {
                 </div>
                 <div className='input-box mb-4'>
                   <label htmlFor="text" className="block text-gray-700 mb-1">Shop Name</label>
-                  <input type="text" placeholder='Enter name of your shop' required ref={shopname} className="border rounded-lg p-2 w-full" />
+                  <input type="text" placeholder='Enter name of your shop' required ref={shopname} className="border border-neutral-500 rounded-lg p-2 w-full" />
                 </div>
                 <div className='input-box mb-4'>
                   <label htmlFor="file" className="block text-gray-700 mb-1">Upload logo</label>
-                  <input type="file" required ref={shoplogo} className="border rounded-lg p-2 w-full" />
+                  <input type="file" required ref={shoplogo} className="rounded-lg p-2 w-full" />
                 </div>
                 <div className='input-box mb-4'>
                   <label htmlFor="typeofshop" className="block text-gray-700 mb-1">Type of shop</label>
-                  <select ref={typeofshop} className="border rounded-lg p-2 w-full" required>
+                  <select ref={typeofshop} className="border border-neutral-500 rounded-lg p-2 w-full" required>
                     <option value="">--Select type of shop--</option>
                     {/* Options */}
                     <option value="Option1">Franchise</option>
@@ -226,7 +227,6 @@ export const Login = ({ setIsAuthenticated }) => {
                     <option value="Option20">Convenience Shop</option>
                     <option value="Option21">Mobile Repair Shop</option>
                     <option value="Option22">Electronics Shop</option>
-                    <option value="Option23">Other</option>
                   </select>
                 </div>
                 <button onClick={handleClick} className="w-full bg-blue-500 text-white p-2 rounded-lg hover:bg-blue-600">Register</button>

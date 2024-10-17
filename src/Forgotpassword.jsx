@@ -1,27 +1,37 @@
-// src/pages/ForgotPassword.js
 import React, { useState } from 'react';
 import { sendPasswordResetEmail } from 'firebase/auth';
-import { auth } from './firebase';  // Adjusted path to firebase config
-import { useNavigate } from 'react-router-dom';  // Import useNavigate for navigation
+import { auth } from './firebase'; 
+import { useNavigate } from 'react-router-dom';
 
 function Forgotpassword() {
     const [email, setEmail] = useState('');
     const [message, setMessage] = useState('');
     const [error, setError] = useState('');
-    const navigate = useNavigate();  // Initialize useNavigate
+    const navigate = useNavigate();
+
+    const validateEmail = (email) => {
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        return emailRegex.test(email);
+    };
 
     const handleForgotPassword = async (e) => {
         e.preventDefault();
-        setMessage(''); // Reset the message before a new attempt
-        setError('');   // Reset the error before a new attempt
+        setMessage('');
+        setError('');
+
+        if (!validateEmail(email)) {
+            setError('Please enter a valid email address.');
+            return;
+        }
+
         try {
             await sendPasswordResetEmail(auth, email);
             setMessage('Password reset email sent! Check your inbox.');
-            // Automatically navigate to login after a successful password reset
-            setTimeout(() => navigate('/login'), 3000);  // Redirect after 3 seconds
+
+            setTimeout(() => navigate('/login'), 3000);
         } catch (error) {
-            setError('Failed to send reset email. Please check your email and try again.');
-            console.error(error);
+            setError(`Failed to send reset email: ${error.message}`);
+            console.error("Error sending reset email:", error);
         }
     };
 
@@ -29,6 +39,7 @@ function Forgotpassword() {
         <div className="flex justify-center items-center min-h-screen bg-gray-100">
             <div className="w-full max-w-md bg-white shadow-md rounded-lg p-8">
                 <h2 className="text-2xl font-semibold text-center text-gray-700 mb-6">Forgot Password</h2>
+                
                 <form onSubmit={handleForgotPassword} className="space-y-6">
                     <div className="flex flex-col">
                         <label htmlFor="email" className="text-sm font-medium text-gray-600">Email:</label>
@@ -47,18 +58,16 @@ function Forgotpassword() {
                     </button>
                 </form>
 
-                {/* Success or Error messages */}
                 {message && (
                     <p className="text-green-600 text-center mt-4">{message}</p>
                 )}
+
                 {error && (
                     <p className="text-red-600 text-center mt-4">{error}</p>
                 )}
-
-                {/* Back button */}
                 <button 
                     className="mt-6 w-full bg-gray-300 text-gray-700 py-3 rounded-lg hover:bg-gray-400 transition duration-200"
-                    onClick={() => navigate('/login')}  // Navigate back to login
+                    onClick={() => navigate('/login')} 
                 >
                     Back to Login
                 </button>
