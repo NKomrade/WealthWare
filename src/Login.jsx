@@ -158,7 +158,7 @@ export const Login = ({ setIsAuthenticated }) => {
                   <span>Login with Google</span>
                 </button>
                 <div className="register-link text-center mt-4">
-                  <p>Don't have an account? <button type="button" onClick={registerLink} className="text-blue-500 hover:underline">Register</button></p>
+                  <p>Don't Have An Account? <button type="button" onClick={registerLink} className="text-blue-500 hover:underline">Register</button></p>
                 </div>
               </form>
             </div>
@@ -240,7 +240,7 @@ export const Login = ({ setIsAuthenticated }) => {
                   <span>Continue with Google</span>
                 </button>
                 <div className="login-link text-center mt-4">
-                  <p>Already have an account? <button type="button" onClick={loginLink} className="text-blue-500 hover:underline">Login</button></p>
+                  <p>Already Have An Account? <button type="button" onClick={loginLink} className="text-blue-500 hover:underline">Login</button></p>
                 </div>
               </form>
             </div>
