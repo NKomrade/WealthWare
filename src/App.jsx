@@ -1,16 +1,19 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Layout from './components/shared/Layout';
 import Dashboard from './pages/Dashboard';
 import Inventory from './pages/Inventory';
 import Invoices from './pages/Invoices';
 import Expense_Tracking from './pages/Expense_Tracking';
 import Sales_Report from './pages/Sales_Report';
-import Profile from './pages/Profile'
-import Settings from './pages/Settings'
+import Profile from './pages/Profile';
+import Settings from './pages/Settings';
 import Login from './Login';
 import Forgotpassword from './Forgotpassword';  
+import { auth } from './firebase'; // Firebase authentication import
+import { onAuthStateChanged } from 'firebase/auth';
 
+// Protected route component
 function ProtectedRoute({ isAuthenticated, children }) {
     if (!isAuthenticated) {
         return <Navigate to="/login" />;
@@ -21,12 +24,26 @@ function ProtectedRoute({ isAuthenticated, children }) {
 function App() {
     const [isAuthenticated, setIsAuthenticated] = useState(false);
 
+    // Persist authentication status using Firebase onAuthStateChanged
+    useEffect(() => {
+        const unsubscribe = onAuthStateChanged(auth, (user) => {
+            if (user) {
+                setIsAuthenticated(true);
+            } else {
+                setIsAuthenticated(false);
+            }
+        });
+
+        // Cleanup subscription on unmount
+        return () => unsubscribe();
+    }, []);
+
     return (
         <Router>
             <Routes>
                 {/* Public routes */}
                 <Route path="/login" element={<Login setIsAuthenticated={setIsAuthenticated} />} />
-                <Route path="/forgotpassword" element={<Forgotpassword />} /> {/* Add ForgotPassword route */}
+                <Route path="/forgotpassword" element={<Forgotpassword />} /> {/* Forgot Password route */}
                 
                 {/* Protected routes */}
                 <Route path="/" element={
@@ -34,13 +51,14 @@ function App() {
                         <Layout />
                     </ProtectedRoute>
                 }>
+                    {/* Nested routes inside the layout */}
                     <Route index element={<Dashboard />} />
                     <Route path="/inventory" element={<Inventory />} />
                     <Route path="/invoices" element={<Invoices />} />
                     <Route path="/expensetracking" element={<Expense_Tracking />} />
                     <Route path="/salesreport" element={<Sales_Report />} />
                     <Route path="/profile" element={<Profile />} />
-					<Route path="/settings" element={<Settings />} />
+                    <Route path="/settings" element={<Settings />} />
                 </Route>
 
                 {/* Fallback route */}
@@ -49,4 +67,5 @@ function App() {
         </Router>
     );
 }
+
 export default App;

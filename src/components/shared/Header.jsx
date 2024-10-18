@@ -10,18 +10,31 @@ import { doc, getDoc } from 'firebase/firestore'; // Firestore methods for getti
 export default function Header() {
     const navigate = useNavigate();
     const [username, setUsername] = useState(''); // State for username
+    const [profileImage, setProfileImage] = useState('/api/placeholder/40/40'); // State for profile image
 
     useEffect(() => {
         const fetchUserData = async () => {
             const user = auth.currentUser; // Get the current user
             if (user) {
                 const userDoc = doc(db, 'users', user.uid); // Reference to the user document in Firestore
-                const userSnap = await getDoc(userDoc);
-                if (userSnap.exists()) {
-                    setUsername(userSnap.data().username); // Set the username from Firestore
-                } else {
-                    console.error('No such user document!');
+                try {
+                    const userSnap = await getDoc(userDoc);
+                    if (userSnap.exists()) {
+                        const userData = userSnap.data();
+                        setUsername(userData.username || ''); // Set the username from Firestore
+                        if (userData.logoUrl) {
+                            setProfileImage(userData.logoUrl); // Set logo URL
+                        } else {
+                            console.warn('No logo URL found for this user.');
+                        }
+                    } else {
+                        console.error('No such user document!');
+                    }
+                } catch (error) {
+                    console.error('Error fetching user data:', error);
                 }
+            } else {
+                console.warn('No user is currently logged in.');
             }
         };
 
@@ -54,11 +67,12 @@ export default function Header() {
                 <Menu as="div" className="relative">
                     <Menu.Button className="flex items-center gap-2 focus:outline-none">
                         <div className="flex items-center">
-                            <div className="w-10 h-10 rounded-full bg-sky-100 flex items-center justify-center">
+                            <div className="w-10 h-10 rounded-full bg-sky-100 flex items-center justify-center overflow-hidden">
                                 <img
-                                    src="/api/placeholder/40/40"
+                                    src={profileImage}
                                     alt="Profile"
-                                    className="rounded-full"
+                                    className="rounded-full w-full h-full object-cover"
+                                    onError={() => setProfileImage('/api/placeholder/40/40')} // Fallback if the image fails to load
                                 />
                             </div>
                             <div className="ml-2">
