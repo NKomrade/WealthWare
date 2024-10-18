@@ -9,6 +9,7 @@ import {
   GoogleAuthProvider
 } from 'firebase/auth';
 import { setDoc, doc } from 'firebase/firestore';
+import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { AiOutlineEye, AiOutlineEyeInvisible } from 'react-icons/ai';
 import { FcGoogle } from 'react-icons/fc';
 
@@ -34,27 +35,58 @@ export const Login = ({ setIsAuthenticated }) => {
 
   const handleClick = async (e) => {
     e.preventDefault();
-    if (!show && name.current.value && email.current.value && password.current.value && shopname.current.value && typeofshop.current.value) {
+  
+    if (
+      !show &&
+      name.current.value &&
+      email.current.value &&
+      password.current.value &&
+      shopname.current.value &&
+      typeofshop.current.value &&
+      shoplogo.current.files.length > 0
+    ) {
       try {
+        // Create user with email and password in Firebase Authentication
         const userCredential = await createUserWithEmailAndPassword(auth, email.current.value, password.current.value);
         const user = userCredential.user;
-
-        await setDoc(doc(db, "users", user.uid), {
+  
+        // Upload the shop logo to Firebase Storage
+        const file = shoplogo.current.files[0]; // Get the file from the input
+        const storage = getStorage(); // Initialize Firebase Storage
+        const storageRef = ref(storage, `shoplogos/${user.uid}/${file.name}`); // Reference to storage path
+  
+        // Upload the file to Firebase Storage
+        await uploadBytes(storageRef, file);
+        console.log('File uploaded successfully');
+  
+        // Get the download URL of the uploaded file
+        const downloadURL = await getDownloadURL(storageRef);
+        console.log('File available at', downloadURL);
+  
+        // Save user data along with the shop logo URL to Firestore
+        await setDoc(doc(db, 'users', user.uid), {
           name: name.current.value,
           email: email.current.value,
           shopname: shopname.current.value,
-          typeofshop: typeofshop.current.value
+          typeofshop: typeofshop.current.value,
+          shoplogo: downloadURL, // Save the URL of the uploaded logo
+          createdAt: new Date().toISOString(), // Add creation timestamp
         });
-
-        alert("Account created successfully!!");
-        loginLink(); 
+  
+        // Show success message
+        alert('Registered Successfully!');
+  
+        // Redirect to login page
+        navigate('/login'); // Directly navigate to the login page
+        loginLink();
       } catch (error) {
-        alert(error.message);
+        console.error('Error uploading file:', error);
+        alert('Error: ' + error.message); // Handle any errors
       }
     } else {
-      alert("Please fill all fields in the registration form.");
+      alert('Please fill all fields in the registration form.');
     }
-  }; 
+  };  
 
   const handleSignIn = async (e) => {
     e.preventDefault();
@@ -291,7 +323,32 @@ export const Login = ({ setIsAuthenticated }) => {
                     <option value="Tea Stall">Tea Stall</option>
                     <option value="Restaurant">Restaurant</option>
                     <option value="Florist">Florist</option>
+                    <option value="Auto Parts">Auto Parts</option>
                     <option value="Bakery">Bakery</option>
+                    <option value="Cafe">Cafe</option>
+                    <option value="Auto Repair">Auto Repair</option>
+                    <option value="Paan Shop">Paan Shop</option>
+                    <option value="Vegetable Shop">Vegetable Shop</option>
+                    <option value="Pharmacy">Pharmacy</option>
+                    <option value="Jewelry">Jewelry</option>
+                    <option value="Cycle Repair Shop">Cycle Repair Shop</option>
+                    <option value="Sweet Shop">Sweet Shop</option>
+                    <option value="Pet Shop">Pet Shop</option>
+                    <option value="Furniture Store">Furniture Store</option>
+                    <option value="Dry Cleaner">Dry Cleaner</option>
+                    <option value="Gym">Gym</option>
+                    <option value="Stationery Shop">Stationery Shop</option>
+                    <option value="Convenience Shop">Convenience Shop</option>
+                    <option value="Mobile Repair Shop">Mobile Repair Shop</option>
+                    <option value="Electronics Shop">Electronics Shop</option>
+                    <option value="Salon">Salon</option>
+                    <option value="Tailor">Tailor</option>
+                    <option value="Electronics Repair Shop">Electronics Repair Shop</option>
+                    <option value="Spare Parts Dealer">Spare Parts Dealer</option>
+                    <option value="Photo Studio">Photo Studio</option>
+                    <option value="Toy Shop">Toy Shop</option>
+                    <option value="Bicycle Shop">Bicycle Shop</option>
+                    <option value="Textile Shop">Textile Shop</option>
                   </select>
                 </div>
                 <button

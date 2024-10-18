@@ -1,31 +1,37 @@
 import React, { Fragment, useEffect, useState } from 'react';
 import { Menu, Transition } from '@headlessui/react';
-import { FiSearch } from 'react-icons/fi'; // Importing the search icon from react-icons
+import { FiSearch, FiChevronDown } from 'react-icons/fi'; // Add FiChevronDown for dropdown
+import { IoMdPerson } from "react-icons/io"; // Add IoMdPerson for profile placeholder
 import classNames from 'classnames';
 import { useNavigate } from 'react-router-dom';
-import { auth, db } from '../../firebase'; // Make sure to import your Firebase setup
-import { signOut } from 'firebase/auth'; 
-import { doc, getDoc } from 'firebase/firestore'; // Firestore methods for getting data
+import { auth, db } from '../../firebase'; 
+import { signOut } from 'firebase/auth';
+import { doc, getDoc } from 'firebase/firestore'; 
 
 export default function Header() {
     const navigate = useNavigate();
-    const [username, setUsername] = useState(''); // State for username
-    const [profileImage, setProfileImage] = useState('/api/placeholder/40/40'); // State for profile image
+    const [username, setUsername] = useState('');
+    const [ownerName, setOwnerName] = useState(''); // State to store owner's name
+    const [profileImage, setProfileImage] = useState(''); // Start with empty string for profile image
 
     useEffect(() => {
         const fetchUserData = async () => {
-            const user = auth.currentUser; // Get the current user
+            const user = auth.currentUser;
             if (user) {
-                const userDoc = doc(db, 'users', user.uid); // Reference to the user document in Firestore
+                // Fetch user data from Firestore
+                const userDoc = doc(db, 'users', user.uid);
                 try {
                     const userSnap = await getDoc(userDoc);
                     if (userSnap.exists()) {
                         const userData = userSnap.data();
-                        setUsername(userData.username || ''); // Set the username from Firestore
-                        if (userData.logoUrl) {
-                            setProfileImage(userData.logoUrl); // Set logo URL
+                        setUsername(userData.username || '');
+                        setOwnerName(userData.name || 'Owner name'); // Fetch owner's name
+
+                        // Use the 'shoplogo' field from Firestore
+                        if (userData.shoplogo) {
+                            setProfileImage(userData.shoplogo); // Set the URL from Firestore
                         } else {
-                            console.warn('No logo URL found for this user.');
+                            console.warn('No shop logo found for this user.');
                         }
                     } else {
                         console.error('No such user document!');
@@ -39,14 +45,14 @@ export default function Header() {
         };
 
         fetchUserData();
-    }, []);
+    }, []); // Empty dependency array means this runs only once on component mount
 
     const handleSignOut = async () => {
         try {
             await signOut(auth);
             navigate('/login');
         } catch (error) {
-            console.error("Sign out error: ", error);
+            console.error('Sign out error: ', error);
         }
     };
 
@@ -62,26 +68,33 @@ export default function Header() {
                     />
                 </div>
             </div>
-            
+
             <div className="flex items-center gap-2">
                 <Menu as="div" className="relative">
                     <Menu.Button className="flex items-center gap-2 focus:outline-none">
                         <div className="flex items-center">
                             <div className="w-10 h-10 rounded-full bg-sky-100 flex items-center justify-center overflow-hidden">
-                                <img
-                                    src={profileImage}
-                                    alt="Profile"
-                                    className="rounded-full w-full h-full object-cover"
-                                    onError={() => setProfileImage('/api/placeholder/40/40')} // Fallback if the image fails to load
-                                />
+                                {profileImage ? (
+                                    <img
+                                        src={profileImage}
+                                        alt="Profile"
+                                        className="rounded-full w-full h-full object-cover"
+                                        onError={() => setProfileImage('')} // Fallback to icon if image fails
+                                    />
+                                ) : (
+                                    <IoMdPerson className="text-gray-500 text-2xl" /> // Display placeholder icon
+                                )}
                             </div>
-                            <div className="ml-2">
-                                <div className="text-sm text-right">{username || 'Owner name'}</div>
-                                <div className="text-xs text-gray-500">Admin</div>
+                            <div className="ml-2 text-left"> {/* Align the text to the left */}
+                                <div className="text-sm flex items-center gap-1">
+                                    {ownerName}
+                                    <FiChevronDown /> {/* Dropdown icon to the right of the owner's name */}
+                                </div>
+                                <div className="text-xs text-gray-500">Admin</div> {/* Left aligned */}
                             </div>
                         </div>
                     </Menu.Button>
-                    
+
                     <Transition
                         as={Fragment}
                         enter="transition ease-out duration-100"
@@ -96,7 +109,7 @@ export default function Header() {
                                 <Menu.Item>
                                     {({ active }) => (
                                         <div
-                                            onClick={() => navigate('/profile')} // Navigate to the Profile page
+                                            onClick={() => navigate('/profile')}
                                             className={classNames(
                                                 active ? 'bg-gray-100' : '',
                                                 'block px-4 py-2 text-sm text-gray-700 cursor-pointer'
@@ -109,7 +122,7 @@ export default function Header() {
                                 <Menu.Item>
                                     {({ active }) => (
                                         <div
-                                            onClick={() => navigate('/settings')} // Navigate to the Settings page
+                                            onClick={() => navigate('/settings')}
                                             className={classNames(
                                                 active ? 'bg-gray-100' : '',
                                                 'block px-4 py-2 text-sm text-gray-700 cursor-pointer'
@@ -122,7 +135,7 @@ export default function Header() {
                                 <Menu.Item>
                                     {({ active }) => (
                                         <div
-                                            onClick={handleSignOut} // Call handleSignOut on click
+                                            onClick={handleSignOut}
                                             className={classNames(
                                                 active ? 'bg-gray-100' : '',
                                                 'block px-4 py-2 text-sm text-gray-700 cursor-pointer'
