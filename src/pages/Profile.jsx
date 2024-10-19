@@ -55,7 +55,7 @@ function Profile({ ownerName }) {
     <div className="flex justify-center items-center min-h-screen bg-gray-100">
       <div className="w-full max-w-6xl bg-white shadow-md rounded-lg p-8">
         {/* Header Section */}
-        <div className="relative w-full h-40 bg-gradient-to-r from-blue-200 to-yellow-200 rounded-t-lg flex items-center p-4">
+        <div className="relative w-full h-40 bg-gradient-to-r from-blue-400 to-yellow-200 rounded-t-lg flex items-center p-4">
           <div className="flex items-center">
             <img 
               src={profileData.profileImage}  // Use profile image from Firestore or placeholder
