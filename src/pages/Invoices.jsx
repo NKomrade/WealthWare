@@ -104,9 +104,11 @@ const Invoices = () => {
         paymentMethod,
         date: new Date().toISOString().split("T")[0],
       };
+  
+      // Save the invoice data to Firestore
       await addDoc(collection(db, `users/${user.uid}/invoices`), invoiceData);
       alert("Invoice saved successfully!");
-
+  
       // Create a new window for printing
       const printWindow = window.open("", "_blank");
       printWindow.document.write(`
@@ -130,6 +132,7 @@ const Invoices = () => {
         <body>
           <div class="invoice-container">
             <div class="header">
+              <h1>Invoice</h1>
               <p><strong>Invoice ID:</strong> ${invoiceID}</p>
               <p><strong>Date:</strong> ${new Date().toLocaleDateString()}</p>
             </div>
@@ -161,139 +164,153 @@ const Invoices = () => {
               <p><strong>Total Amount:</strong> ₹${total.toFixed(2)}</p>
             </div>
           </div>
+          <script>
+            window.onload = function() {
+              window.print();
+              window.onafterprint = function() {
+                window.close();
+              };
+            };
+          </script>
         </body>
         </html>
       `);
-      printWindow.document.close();
-      printWindow.print();
+  
+      printWindow.document.close(); // Close the document stream for the new window
     } else {
       alert("Please fill out all required fields.");
     }
-  };
+  };  
 
   return (
-    <div className="max-w-2xl mx-auto p-6 bg-white shadow-lg rounded-lg">
-      <h2 className="text-2xl font-bold mb-4 text-center">WealthWare</h2>
-      <form onSubmit={handlePrint} className="space-y-4">
-        <div>
-          <label className="block text-sm font-medium text-gray-700">Invoice ID</label>
-          <input type="text" value={invoiceID} readOnly className="mt-1 block w-full p-2 border border-gray-300 rounded-md" />
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-700">Date</label>
-          <input type="text" value={new Date().toLocaleDateString()} readOnly className="mt-1 block w-full p-2 border border-gray-300 rounded-md" />
-        </div>
-
-        {selectedItems.map((item, index) => (
-          <div key={index} className="space-y-2">
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Product</label>
-              <select
-                value={item.product?.id || ""}
-                onChange={(e) => handleProductChange(index, e.target.value)}
-                required
-                className="mt-1 block w-full p-2 border border-gray-300 rounded-md"
-              >
-                <option value="">Select a product</option>
-                {products.map((product) => (
-                  <option key={product.id} value={product.id}>
-                    {product.name} - ₹{product.price}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Quantity</label>
-              <input
-                type="number"
-                min="1"
-                value={item.quantity}
-                onChange={(e) => handleQuantityChange(index, Number(e.target.value))}
-                required
-                className="mt-1 block w-full p-2 border border-gray-300 rounded-md"
-              />
-            </div>
+    <div className="flex flex-row space-x-4 p-6 bg-white shadow-lg rounded-lg">
+      {/* Left Section - Invoice Form */}
+      <div className="w-1/2 p-4 bg-white shadow-md rounded-md">
+        <h2 className="text-2xl font-bold mb-4 text-center">WealthWare</h2>
+        <form onSubmit={handlePrint} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700">Invoice ID</label>
+            <input type="text" value={invoiceID} readOnly className="mt-1 block w-full p-2 border border-gray-300 rounded-md" />
           </div>
-        ))}
 
-        <button
-          type="button"
-          onClick={handleAddProduct}
-          className="w-full bg-blue-500 text-white p-2 rounded-md hover:bg-blue-600"
-        >
-          Add More Products
-        </button>
+          <div>
+            <label className="block text-sm font-medium text-gray-700">Date</label>
+            <input type="text" value={new Date().toLocaleDateString()} readOnly className="mt-1 block w-full p-2 border border-gray-300 rounded-md" />
+          </div>
 
-        <div>
-          <label className="block text-sm font-medium text-gray-700">Customer Name</label>
-          <input
-            type="text"
-            value={customerName}
-            onChange={(e) => setCustomerName(e.target.value)}
-            required
-            className="mt-1 block w-full p-2 border border-gray-300 rounded-md"
-          />
-        </div>
+          {selectedItems.map((item, index) => (
+            <div key={index} className="space-y-2">
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Product</label>
+                <select
+                  value={item.product?.id || ""}
+                  onChange={(e) => handleProductChange(index, e.target.value)}
+                  required
+                  className="mt-1 block w-full p-2 border border-gray-300 rounded-md"
+                >
+                  <option value="">Select a product</option>
+                  {products.map((product) => (
+                    <option key={product.id} value={product.id}>
+                      {product.name} - ₹{product.price}
+                    </option>
+                  ))}
+                </select>
+              </div>
 
-        <div>
-          <label className="block text-sm font-medium text-gray-700">Customer Address</label>
-          <textarea
-            value={customerAddress}
-            onChange={(e) => setCustomerAddress(e.target.value)}
-            required
-            className="mt-1 block w-full p-2 border border-gray-300 rounded-md"
-          ></textarea>
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-700">Payment Method</label>
-          <select
-            value={paymentMethod}
-            onChange={(e) => setPaymentMethod(e.target.value)}
-            required
-            className="mt-1 block w-full p-2 border border-gray-300 rounded-md"
-          >
-            <option value="">Select payment method</option>
-            <option value="Cash">Cash</option>
-            <option value="Card">Card</option>
-            <option value="UPI">UPI</option>
-          </select>
-        </div>
-
-        <div>
-          <p className="text-sm font-medium text-gray-700">Subtotal: ₹{subtotal.toFixed(2)}</p>
-          <p className="text-sm font-medium text-gray-700">Tax (18%): ₹{tax.toFixed(2)}</p>
-          <p className="text-sm font-medium text-gray-700">Total Amount: ₹{total.toFixed(2)}</p>
-        </div>
-
-        <button type="submit" className="w-full bg-green-500 text-white p-2 rounded-md hover:bg-green-600">
-          Print Invoice
-        </button>
-      </form>
-
-      <h3 className="text-xl font-semibold mt-8">Invoices List</h3>
-      <table className="min-w-full mt-4 border border-gray-300">
-        <thead>
-          <tr>
-            <th className="px-4 py-2 border-b">Invoice ID</th>
-            <th className="px-4 py-2 border-b">Date</th>
-            <th className="px-4 py-2 border-b">Customer</th>
-            <th className="px-4 py-2 border-b">Total Amount</th>
-          </tr>
-        </thead>
-        <tbody>
-          {invoices.map((invoice) => (
-            <tr key={invoice.id}>
-              <td className="px-4 py-2 border-b">{invoice.invoiceID}</td>
-              <td className="px-4 py-2 border-b">{invoice.date}</td>
-              <td className="px-4 py-2 border-b">{invoice.customerName}</td>
-              <td className="px-4 py-2 border-b">₹{invoice.total.toFixed(2)}</td>
-            </tr>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Quantity</label>
+                <input
+                  type="number"
+                  min="1"
+                  value={item.quantity}
+                  onChange={(e) => handleQuantityChange(index, Number(e.target.value))}
+                  required
+                  className="mt-1 block w-full p-2 border border-gray-300 rounded-md"
+                />
+              </div>
+            </div>
           ))}
-        </tbody>
-      </table>
+
+          <button
+            type="button"
+            onClick={handleAddProduct}
+            className="w-full bg-blue-500 text-white p-2 rounded-md hover:bg-blue-600"
+          >
+            Add More Products
+          </button>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700">Customer Name</label>
+            <input
+              type="text"
+              value={customerName}
+              onChange={(e) => setCustomerName(e.target.value)}
+              required
+              className="mt-1 block w-full p-2 border border-gray-300 rounded-md"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700">Customer Address</label>
+            <textarea
+              value={customerAddress}
+              onChange={(e) => setCustomerAddress(e.target.value)}
+              required
+              className="mt-1 block w-full p-2 border border-gray-300 rounded-md"
+            ></textarea>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700">Payment Method</label>
+            <select
+              value={paymentMethod}
+              onChange={(e) => setPaymentMethod(e.target.value)}
+              required
+              className="mt-1 block w-full p-2 border border-gray-300 rounded-md"
+            >
+              <option value="">Select payment method</option>
+              <option value="Cash">Cash</option>
+              <option value="Card">Card</option>
+              <option value="UPI">UPI</option>
+            </select>
+          </div>
+
+          <div>
+            <p className="text-sm font-medium text-gray-700">Subtotal: ₹{subtotal.toFixed(2)}</p>
+            <p className="text-sm font-medium text-gray-700">Tax (18%): ₹{tax.toFixed(2)}</p>
+            <p className="text-sm font-medium text-gray-700">Total Amount: ₹{total.toFixed(2)}</p>
+          </div>
+
+          <button type="submit" className="w-full bg-green-500 text-white p-2 rounded-md hover:bg-green-600">
+            Print Invoice
+          </button>
+        </form>
+      </div>
+
+      {/* Right Section - Invoices List */}
+      <div className="w-1/2 p-4 bg-white shadow-md rounded-md">
+        <h3 className="text-xl font-semibold mb-4">Invoices List</h3>
+        <table className="min-w-full border border-gray-300">
+          <thead>
+            <tr>
+              <th className="px-4 py-2 border-b">Invoice ID</th>
+              <th className="px-4 py-2 border-b">Date</th>
+              <th className="px-4 py-2 border-b">Customer</th>
+              <th className="px-4 py-2 border-b">Total Amount</th>
+            </tr>
+          </thead>
+          <tbody>
+            {invoices.map((invoice) => (
+              <tr key={invoice.id}>
+                <td className="px-4 py-2 border-b">{invoice.invoiceID}</td>
+                <td className="px-4 py-2 border-b">{invoice.date}</td>
+                <td className="px-4 py-2 border-b">{invoice.customerName}</td>
+                <td className="px-4 py-2 border-b">₹{invoice.total.toFixed(2)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 };

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { collection, addDoc, getDocs } from 'firebase/firestore'; // Import Firestore functions
-import { getAuth, onAuthStateChanged } from 'firebase/auth'; // Import Firebase Auth and Auth State Change Listener
-import { db } from '../firebase'; // Your Firestore instance
+import { collection, addDoc, getDocs } from 'firebase/firestore';
+import { getAuth, onAuthStateChanged } from 'firebase/auth';
+import { db } from '../firebase';
 
 const Inventory = () => {
   const [showModal, setShowModal] = useState(false);
@@ -14,21 +14,20 @@ const Inventory = () => {
     description: '',
   });
 
-  const auth = getAuth(); // Initialize Auth
-  const [user, setUser] = useState(null); // Track the authenticated user
+  const auth = getAuth();
+  const [user, setUser] = useState(null);
 
-  // Listen for auth state changes to detect the logged-in user
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       if (currentUser) {
-        setUser(currentUser); // Set the authenticated user
-        fetchProducts(currentUser); // Fetch products for the current user
+        setUser(currentUser);
+        fetchProducts(currentUser);
       } else {
         console.warn('No user is currently logged in.');
       }
     });
 
-    return () => unsubscribe(); // Cleanup on unmount
+    return () => unsubscribe();
   }, []);
 
   const fetchProducts = async (currentUser) => {
@@ -42,25 +41,21 @@ const Inventory = () => {
     }
   };
 
-  // Function to handle input change
   const handleChange = (e) => {
     const { name, value } = e.target;
     setProductData({ ...productData, [name]: value });
   };
 
-  // Function to open modal and generate a unique product ID
   const openModal = () => {
     const uniqueId = `PROD-${Math.floor(1000 + Math.random() * 9000)}`;
     setProductData({ ...productData, id: uniqueId });
     setShowModal(true);
   };
 
-  // Function to close modal
   const closeModal = () => {
     setShowModal(false);
   };
 
-  // Handle form submission and add a new product to Firestore
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -70,7 +65,6 @@ const Inventory = () => {
     }
 
     try {
-      // Save to the current user's products subcollection
       await addDoc(collection(db, `users/${user.uid}/products`), {
         id: productData.id,
         name: productData.name,
@@ -79,10 +73,7 @@ const Inventory = () => {
         quantity: productData.quantity,
       });
 
-      // Add product to local state (use generated product ID)
       setProducts([...products, productData]);
-
-      // Reset form and close modal
       setProductData({
         id: '',
         name: '',
@@ -96,13 +87,103 @@ const Inventory = () => {
     }
   };
 
+  const handleGeneratePO = (e) => {
+    e.preventDefault();
+
+    if (!products.length) {
+      alert("No products available to generate a PO.");
+      return;
+    }
+
+    const purchaseDate = new Date().toLocaleDateString();
+
+    const printWindow = window.open("", "_blank");
+    printWindow.document.write(`
+      <!DOCTYPE html>
+      <html lang="en">
+      <head>
+          <meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>Purchase Order</title>
+          <style>
+              body { font-family: Arial, sans-serif; }
+              .po-container { width: 80%; margin: auto; padding: 20px; border: 1px solid #ddd; }
+              .header, .footer { display: flex; justify-content: space-between; align-items: center; }
+              .po-details, .purchase-details { margin-top: 20px; }
+              table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+              th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+              th { background-color: #f2f2f2; }
+              .total { text-align: right; }
+          </style>
+      </head>
+      <body>
+        <div class="po-container">
+          <div class="header">
+            <h1>Purchase Order</h1>
+            <p><strong>Purchase Date:</strong> ${purchaseDate}</p>
+          </div>
+          <table>
+            <thead>
+              <tr>
+                <th>Product ID</th>
+                <th>Product Name</th>
+                <th>Quantity</th>
+                <th>Price Per Unit</th>
+                <th>Total Price</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${products
+                .map(
+                  (product) => `
+                <tr>
+                  <td>${product.id}</td>
+                  <td>${product.name}</td>
+                  <td>${product.quantity}</td>
+                  <td>₹${product.price}</td>
+                  <td>₹${(product.price * product.quantity).toFixed(2)}</td>
+                </tr>`
+                )
+                .join("")}
+            </tbody>
+          </table>
+          <div class="total">
+            <p><strong>Total Amount:</strong> ₹${products
+              .reduce((acc, product) => acc + product.price * product.quantity, 0)
+              .toFixed(2)}</p>
+          </div>
+        </div>
+        <script>
+          window.onload = function() {
+            window.print();
+            window.onafterprint = function() {
+              window.close();
+            };
+          };
+        </script>
+      </body>
+      </html>
+    `);
+
+    printWindow.document.close();
+    alert("Purchase Order generated successfully!");
+  };
+
   return (
     <div className="p-8">
-      {/* Heading */}
-      <h2 className="text-2xl font-semibold mb-4">Added Inventory</h2>
-      {/* Add Inventory and Generate PO Buttons */}
+      <div className="flex justify-between items-center mb-1">
+        <h2 className="text-2xl font-semibold">Added Inventory</h2>
+        <div className="space-x-4">
+          <button onClick={openModal} className="bg-blue-500 text-white px-4 py-2 rounded">
+            Add Inventory
+          </button>
+          <button onClick={handleGeneratePO} className="bg-red-500 text-white px-4 py-2 rounded">
+            Generate PO
+          </button>
+        </div>
+      </div>
+
       <div className="flex justify-between items-start mb-6 space-x-4">
-        {/* Added Inventory Table */}
         <div className="w-2/3">
           <table className="border-collapse border border-gray-400 w-full mb-6">
             <thead>
@@ -134,16 +215,7 @@ const Inventory = () => {
               )}
             </tbody>
           </table>
-          {/* Buttons */}
-          <div className="flex space-x-4">
-            <button onClick={openModal} className="bg-blue-500 text-white px-4 py-2 rounded">
-              Add Inventory
-            </button>
-            <button className="bg-red-500 text-white px-4 py-2 rounded">Generate PO</button>
-          </div>
         </div>
-
-        {/* Inventory Information Section */}
         <div className="w-1/3 bg-blue-100 p-4 rounded shadow-md h-96 overflow-y-auto">
           <h3 className="text-lg font-semibold">Inventory Information</h3>
           <div className="mt-4">
