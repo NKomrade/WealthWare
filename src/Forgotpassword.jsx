@@ -25,9 +25,11 @@ function Forgotpassword() {
         }
 
         try {
+            // Send password reset email to the provided email address
             await sendPasswordResetEmail(auth, email);
             setMessage('Password reset email sent! Check your inbox.');
 
+            // Show a message for a few seconds and redirect user to login
             setTimeout(() => navigate('/login'), 3000);
         } catch (error) {
             setError(`Failed to send reset email: ${error.message}`);
