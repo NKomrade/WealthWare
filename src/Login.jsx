@@ -4,19 +4,17 @@ import { db, auth } from './firebase';
 import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
-  signOut,
-  signInWithPopup,
-  GoogleAuthProvider
+  signOut
 } from 'firebase/auth';
 import { setDoc, doc } from 'firebase/firestore';
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { AiOutlineEye, AiOutlineEyeInvisible } from 'react-icons/ai';
-import { FcGoogle } from 'react-icons/fc';
 
-export const Login = ({ setIsAuthenticated }) => {
+const Login = ({ setIsAuthenticated }) => {
   const name = useRef();
   const email = useRef();
   const password = useRef();
+  const phone = useRef(); // Ref for phone number
   const shopname = useRef();
   const shoplogo = useRef();
   const typeofshop = useRef();
@@ -41,6 +39,7 @@ export const Login = ({ setIsAuthenticated }) => {
       name.current.value &&
       email.current.value &&
       password.current.value &&
+      phone.current.value &&  // Ensure phone number is filled
       shopname.current.value &&
       typeofshop.current.value &&
       shoplogo.current.files.length > 0
@@ -51,37 +50,36 @@ export const Login = ({ setIsAuthenticated }) => {
         const user = userCredential.user;
   
         // Upload the shop logo to Firebase Storage
-        const file = shoplogo.current.files[0]; // Get the file from the input
-        const storage = getStorage(); // Initialize Firebase Storage
-        const storageRef = ref(storage, `shoplogos/${user.uid}/${file.name}`); // Reference to storage path
+        const file = shoplogo.current.files[0];
+        const storage = getStorage();
+        const storageRef = ref(storage, `shoplogos/${user.uid}/${file.name}`);
   
-        // Upload the file to Firebase Storage
         await uploadBytes(storageRef, file);
         console.log('File uploaded successfully');
   
-        // Get the download URL of the uploaded file
         const downloadURL = await getDownloadURL(storageRef);
         console.log('File available at', downloadURL);
   
-        // Save user data along with the shop logo URL to Firestore
+        // Format phone number with +1 prefix
+        const formattedPhone = `+1${phone.current.value}`;
+
+        // Save the user's information in Firestore, including the formatted phone number
         await setDoc(doc(db, 'users', user.uid), {
           name: name.current.value,
           email: email.current.value,
+          phone: formattedPhone,  // Save formatted phone number to Firestore
           shopname: shopname.current.value,
           typeofshop: typeofshop.current.value,
-          shoplogo: downloadURL, // Save the URL of the uploaded logo
-          createdAt: new Date().toISOString(), // Add creation timestamp
+          shoplogo: downloadURL,
+          createdAt: new Date().toISOString(),
         });
   
-        // Show success message
         alert('Registered Successfully!');
-  
-        // Redirect to login page
-        navigate('/login'); // Directly navigate to the login page
+        navigate('/login');
         loginLink();
       } catch (error) {
         console.error('Error uploading file:', error);
-        alert('Error: ' + error.message); // Handle any errors
+        alert('Error: ' + error.message);
       }
     } else {
       alert('Please fill all fields in the registration form.');
@@ -105,20 +103,6 @@ export const Login = ({ setIsAuthenticated }) => {
     }
   };
 
-  // Google Sign-in function
-  const handleGoogleSignIn = async () => {
-    const provider = new GoogleAuthProvider();
-    try {
-      const result = await signInWithPopup(auth, provider);
-      const user = result.user;
-      setIsAuthenticated(true);
-      navigate('/');
-    } catch (error) {
-      alert('Error signing in with Google: ' + error.message);
-    }
-  };
-
-  // Handle logout
   const handleLogout = async () => {
     try {
       await signOut(auth);
@@ -218,14 +202,6 @@ export const Login = ({ setIsAuthenticated }) => {
                 >
                   Login
                 </button>
-                <button
-                  type="button"
-                  onClick={handleGoogleSignIn}
-                  className="w-full mt-2 bg-[#4459dc] text-white p-2 rounded-lg hover:bg-[#4351cb] flex items-center justify-center"
-                >
-                  <FcGoogle className="ml-0 mr-2" size={24} />
-                  <span>Login with Google</span>
-                </button>
                 <div className="register-link text-center mt-4">
                   <p>
                     Don't Have An Account?{' '}
@@ -292,27 +268,27 @@ export const Login = ({ setIsAuthenticated }) => {
                   </button>
                 </div>
                 <div className="input-box mb-4">
-                  <label htmlFor="text" className="block text-gray-700 mb-1">
-                    Shop Name
+                  <label htmlFor="phone" className="block text-gray-700 mb-1">
+                    Phone Number
                   </label>
                   <input
-                    type="text"
-                    placeholder="Enter name of your shop"
+                    type="tel"
+                    placeholder="1234567890"
                     required
-                    ref={shopname}
+                    ref={phone}
                     className="border border-neutral-500 rounded-lg p-2 w-full"
                   />
                 </div>
                 <div className="input-box mb-4">
-                  <label htmlFor="shoplogo" className="block text-gray-700 mb-1">
-                    Upload Logo
+                  <label htmlFor="shopname" className="block text-gray-700 mb-1">
+                    Shop Name
                   </label>
                   <input
-                    type="file"
-                    accept="image/*"
+                    type="text"
+                    placeholder="Enter shop name"
                     required
-                    ref={shoplogo}
-                    className="rounded-lg p-2 w-full"
+                    ref={shopname}
+                    className="border border-neutral-500 rounded-lg p-2 w-full"
                   />
                 </div>
                 <div className='input-box mb-4'>
@@ -351,20 +327,22 @@ export const Login = ({ setIsAuthenticated }) => {
                     <option value="Textile Shop">Textile Shop</option>
                   </select>
                 </div>
+                <div className="input-box mb-4">
+                  <label htmlFor="shoplogo" className="block text-gray-700 mb-1">
+                    Shop Logo
+                  </label>
+                  <input
+                    type="file"
+                    required
+                    ref={shoplogo}
+                    className="rounded-lg p-2 w-full"
+                  />
+                </div>
                 <button
                   onClick={handleClick}
                   className="w-full bg-blue-900 text-white p-2 rounded-lg hover:bg-blue-600"
                 >
                   Register
-                </button>
-
-                <button
-                  type="button"
-                  onClick={handleGoogleSignIn}
-                  className="w-full mt-2 bg-[#4459dc] text-white p-2 rounded-lg hover:bg-[#4351cb] flex items-center justify-center"
-                >
-                  <FcGoogle className="ml-0 mr-2" size={24} />
-                  <span>Continue with Google</span>
                 </button>
                 <div className="login-link text-center mt-4">
                   <p>

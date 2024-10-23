@@ -10,7 +10,7 @@ import Profile from './pages/Profile';
 import Settings from './pages/Settings';
 import Login from './Login';
 import Forgotpassword from './Forgotpassword';  
-import { auth } from './firebase'; // Firebase authentication import
+import { auth } from './firebase';
 import { onAuthStateChanged } from 'firebase/auth';
 
 // Protected route component
