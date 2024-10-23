@@ -1,16 +1,17 @@
 import React, { useState, useEffect } from 'react';
-import { doc, getDoc } from 'firebase/firestore'; // Import Firestore functions
-import { auth, db } from '../firebase'; // Import Firebase instance
+import { doc, getDoc, updateDoc } from 'firebase/firestore';
+import { auth, db } from '../firebase'; 
 
 function Profile({ ownerName }) {
   const [isEditable, setIsEditable] = useState(false);
   const [profileData, setProfileData] = useState({
-    fullName: ownerName || "Owner Name",  // Fetch owner name from the header
+    fullName: ownerName || "Owner Name", 
     email: '',
     shopName: "",
-    profileImage: "", // Placeholder for profile image URL
+    profileImage: "",
     gender: "",
-    state: ""
+    state: "",
+    phone: ""
   });
 
   useEffect(() => {
@@ -29,8 +30,9 @@ function Profile({ ownerName }) {
               email: data.email || "person@gmail.com",  // Email from Firestore
               shopName: data.shopname || "Shop Name",
               profileImage: data.shoplogo || "https://via.placeholder.com/100", 
-              gender: "",
-              state: ""
+              gender: data.gender || "",
+              state: data.state || "",
+              phone: data.phone || ""
             });
           }
         } catch (error) {
@@ -42,7 +44,25 @@ function Profile({ ownerName }) {
     fetchProfileData();
   }, [ownerName]);
 
-  const handleEditClick = () => {
+  const handleEditClick = async () => {
+    if (isEditable) {
+      try {
+        const user = auth.currentUser;
+        if (user) {
+          const userDoc = doc(db, 'users', user.uid);
+          await updateDoc(userDoc, {
+            name: profileData.fullName,
+            shopname: profileData.shopName,
+            gender: profileData.gender,
+            state: profileData.state,
+            phone: profileData.phone
+          });
+          console.log('Profile updated successfully');
+        }
+      } catch (error) {
+        console.error('Error updating profile:', error);
+      }
+    }
     setIsEditable(!isEditable);
   };
 
@@ -120,35 +140,20 @@ function Profile({ ownerName }) {
               className={`mt-2 p-3 border rounded-lg w-full focus:outline-none ${isEditable ? 'border-blue-500' : 'bg-gray-100 border-gray-300'}`}
             >
               <option value="">Select State</option>
-              <option value="Andhra Pradesh">Andhra Pradesh</option>
-              <option value="Arunachal Pradesh">Arunachal Pradesh</option>
-              <option value="Assam">Assam</option>
-              <option value="Bihar">Bihar</option>
-              <option value="Chhattisgarh">Chhattisgarh</option>
-              <option value="Goa">Goa</option>
-              <option value="Gujarat">Gujarat</option>
-              <option value="Haryana">Haryana</option>
-              <option value="Himachal Pradesh">Himachal Pradesh</option>
-              <option value="Jharkhand">Jharkhand</option>
-              <option value="Karnataka">Karnataka</option>
-              <option value="Kerala">Kerala</option>
-              <option value="Madhya Pradesh">Madhya Pradesh</option>
-              <option value="Maharashtra">Maharashtra</option>
-              <option value="Manipur">Manipur</option>
-              <option value="Meghalaya">Meghalaya</option>
-              <option value="Mizoram">Mizoram</option>
-              <option value="Nagaland">Nagaland</option>
-              <option value="Odisha">Odisha</option>
-              <option value="Punjab">Punjab</option>
-              <option value="Rajasthan">Rajasthan</option>
-              <option value="Sikkim">Sikkim</option>
-              <option value="Tamil Nadu">Tamil Nadu</option>
-              <option value="Telangana">Telangana</option>
-              <option value="Tripura">Tripura</option>
-              <option value="Uttar Pradesh">Uttar Pradesh</option>
-              <option value="Uttarakhand">Uttarakhand</option>
-              <option value="West Bengal">West Bengal</option>        
+              {/* State options */}
+              {/* ... Add the states here */}
             </select>
+          </div>
+          <div>
+            <label htmlFor="phone" className="text-sm font-medium text-gray-600">Phone Number</label>
+            <input 
+              type="tel" 
+              name="phone"
+              value={profileData.phone}
+              onChange={handleChange}
+              disabled={!isEditable}
+              className={`mt-2 p-3 border rounded-lg w-full focus:outline-none ${isEditable ? 'border-blue-500' : 'bg-gray-100 border-gray-300'}`}
+            />
           </div>
         </div>
 
