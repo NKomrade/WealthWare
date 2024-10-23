@@ -14,7 +14,7 @@ const Login = ({ setIsAuthenticated }) => {
   const name = useRef();
   const email = useRef();
   const password = useRef();
-  const phone = useRef(); // Ref for phone number
+  const phone = useRef(); 
   const shopname = useRef();
   const shoplogo = useRef();
   const typeofshop = useRef();
@@ -61,7 +61,7 @@ const Login = ({ setIsAuthenticated }) => {
         console.log('File available at', downloadURL);
   
         // Format phone number with +1 prefix
-        const formattedPhone = `+1${phone.current.value}`;
+        const formattedPhone = `${phone.current.value}`;
 
         // Save the user's information in Firestore, including the formatted phone number
         await setDoc(doc(db, 'users', user.uid), {
