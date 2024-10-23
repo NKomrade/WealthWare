@@ -11,7 +11,8 @@ function Profile({ ownerName }) {
     profileImage: "",
     gender: "",
     state: "",
-    phone: ""
+    phone: "",
+    typeofshop: "" 
   });
 
   useEffect(() => {
@@ -26,13 +27,14 @@ function Profile({ ownerName }) {
           if (docSnap.exists()) {
             const data = docSnap.data();
             setProfileData({
-              fullName: data.name || ownerName || "Owner Name",  // Owner name fallback
-              email: data.email || "person@gmail.com",  // Email from Firestore
+              fullName: data.name || ownerName || "Owner Name",  
+              email: data.email || "person@gmail.com",  
               shopName: data.shopname || "Shop Name",
               profileImage: data.shoplogo || "https://via.placeholder.com/100", 
               gender: data.gender || "",
               state: data.state || "",
-              phone: data.phone || ""
+              phone: data.phone || "",
+              typeofshop: data.typeofshop || ""  
             });
           }
         } catch (error) {
@@ -55,7 +57,8 @@ function Profile({ ownerName }) {
             shopname: profileData.shopName,
             gender: profileData.gender,
             state: profileData.state,
-            phone: profileData.phone
+            phone: profileData.phone,
+            typeofshop: profileData.typeofshop 
           });
           console.log('Profile updated successfully');
         }
@@ -78,7 +81,7 @@ function Profile({ ownerName }) {
         <div className="relative w-full h-40 bg-gradient-to-r from-blue-400 to-yellow-200 rounded-t-lg flex items-center p-4">
           <div className="flex items-center">
             <img 
-              src={profileData.profileImage}  // Use profile image from Firestore or placeholder
+              src={profileData.profileImage}  
               alt="Profile"
               className="rounded-full border-4 border-white shadow-md w-24 h-24 object-cover"
             />
@@ -140,8 +143,34 @@ function Profile({ ownerName }) {
               className={`mt-2 p-3 border rounded-lg w-full focus:outline-none ${isEditable ? 'border-blue-500' : 'bg-gray-100 border-gray-300'}`}
             >
               <option value="">Select State</option>
-              {/* State options */}
-              {/* ... Add the states here */}
+              <option value="Andhra Pradesh">Andhra Pradesh</option>
+              <option value="Arunachal Pradesh">Arunachal Pradesh</option>
+              <option value="Assam">Assam</option>
+              <option value="Bihar">Bihar</option>
+              <option value="Chhattisgarh">Chhattisgarh</option>
+              <option value="Goa">Goa</option>
+              <option value="Gujarat">Gujarat</option>
+              <option value="Haryana">Haryana</option>
+              <option value="Himachal Pradesh">Himachal Pradesh</option>
+              <option value="Jharkhand">Jharkhand</option>
+              <option value="Karnataka">Karnataka</option>
+              <option value="Kerala">Kerala</option>
+              <option value="Madhya Pradesh">Madhya Pradesh</option>
+              <option value="Maharashtra">Maharashtra</option>
+              <option value="Manipur">Manipur</option>
+              <option value="Meghalaya">Meghalaya</option>
+              <option value="Mizoram">Mizoram</option>
+              <option value="Nagaland">Nagaland</option>
+              <option value="Odisha">Odisha</option>
+              <option value="Punjab">Punjab</option>
+              <option value="Rajasthan">Rajasthan</option>
+              <option value="Sikkim">Sikkim</option>
+              <option value="Tamil Nadu">Tamil Nadu</option>
+              <option value="Telangana">Telangana</option>
+              <option value="Tripura">Tripura</option>
+              <option value="Uttar Pradesh">Uttar Pradesh</option>
+              <option value="Uttarakhand">Uttarakhand</option>
+              <option value="West Bengal">West Bengal</option>
             </select>
           </div>
           <div>
@@ -150,6 +179,17 @@ function Profile({ ownerName }) {
               type="tel" 
               name="phone"
               value={profileData.phone}
+              onChange={handleChange}
+              disabled={!isEditable}
+              className={`mt-2 p-3 border rounded-lg w-full focus:outline-none ${isEditable ? 'border-blue-500' : 'bg-gray-100 border-gray-300'}`}
+            />
+          </div>
+          <div>
+            <label htmlFor="typeofshop" className="text-sm font-medium text-gray-600">Type of Shop</label>
+            <input 
+              type="text" 
+              name="typeofshop"
+              value={profileData.typeofshop}
               onChange={handleChange}
               disabled={!isEditable}
               className={`mt-2 p-3 border rounded-lg w-full focus:outline-none ${isEditable ? 'border-blue-500' : 'bg-gray-100 border-gray-300'}`}
