@@ -192,7 +192,7 @@ const Settings = () => {
               <button
                 type="button"
                 onClick={handlePasswordReset}
-                className="bg-red-500 text-white py-2 px-4 rounded"
+                className="bg-blue-500 text-white py-2 px-4 rounded"
               >
                 Change Password
               </button>
