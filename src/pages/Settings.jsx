@@ -71,7 +71,7 @@ const Settings = () => {
           name: details.fullName,
           gender: details.gender,
           phone: details.phone,
-          state: details.state, // Ensure state value is saved
+          state: details.state,
           shopname: details.shopName,
           typeofshop: details.shopType,
           address: details.address,
@@ -168,7 +168,7 @@ const Settings = () => {
               <label htmlFor="state" className="text-sm font-medium text-gray-600">State</label>
               <select
                 name="state"
-                value={details.state} // Correctly use details.state here
+                value={details.state}
                 onChange={handleChange}
                 disabled={!isEditable}
                 className={`mt-2 p-3 bg-white border rounded-lg w-full focus:outline-none ${isEditable ? 'border-neutral-900' : 'bg-gray-100 border-gray-300'}`}
@@ -212,6 +212,55 @@ const Settings = () => {
               >
                 Change Password
               </button>
+            </div>
+          </>
+        )}
+
+        {activeTab === 'shop' && (
+          <>
+            <div>
+              <label className="block mb-1">Shop Name</label>
+              <input
+                name="shopName"
+                type="text"
+                value={details.shopName}
+                onChange={handleChange}
+                disabled={!isEditable}
+                className={`border bg-white p-2 rounded w-full ${isEditable ? 'border-neutral-900' : 'bg-gray-100'}`}
+              />
+            </div>
+            <div>
+              <label className="block mb-1">Type of Shop</label>
+              <input
+                name="shopType"
+                type="text"
+                value={details.shopType}
+                onChange={handleChange}
+                disabled={!isEditable}
+                className={`border bg-white p-2 rounded w-full ${isEditable ? 'border-neutral-900' : 'bg-gray-100'}`}
+              />
+            </div>
+            <div>
+              <label className="block mb-1">Shop Address</label>
+              <input
+                name="address"
+                type="text"
+                value={details.address}
+                onChange={handleChange}
+                disabled={!isEditable}
+                className={`border bg-white p-2 rounded w-full ${isEditable ? 'border-neutral-900' : 'bg-gray-100'}`}
+              />
+            </div>
+            <div>
+              <label className="block mb-1">GST Number</label>
+              <input
+                name="gstNumber"
+                type="text"
+                value={details.gstNumber}
+                onChange={handleChange}
+                disabled={!isEditable}
+                className={`border bg-white p-2 rounded w-full ${isEditable ? 'border-neutral-900' : 'bg-gray-100'}`}
+              />
             </div>
           </>
         )}
