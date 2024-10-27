@@ -1,19 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
-import { sendPasswordResetEmail } from 'firebase/auth'; // Import Firebase reset password
-import { auth, db } from '../firebase'; // Firebase services
-import { useProfile } from '../context/contextProfile'; // Import Profile Context
+import { sendPasswordResetEmail } from 'firebase/auth';
+import { auth, db } from '../firebase';
+import { useProfile } from '../context/contextProfile';
 
 const Settings = () => {
-  const { profileData, setProfileData } = useProfile(); // Use context to update profile state
-  const [activeTab, setActiveTab] = useState('personal'); // Track active tab
-  const [isEditable, setIsEditable] = useState(false); // Track if fields are editable
-  const [popupMessage, setPopupMessage] = useState(''); // State to track popup message
+  const { profileData, setProfileData } = useProfile();
+  const [activeTab, setActiveTab] = useState('personal');
+  const [isEditable, setIsEditable] = useState(false);
+  const [popupMessage, setPopupMessage] = useState('');
 
-  // State for personal and shop details
   const [details, setDetails] = useState({
     fullName: '',
-    email: '', 
+    email: '',
     gender: '',
     phone: '',
     state: '',
@@ -23,7 +22,6 @@ const Settings = () => {
     gstNumber: '',
   });
 
-  // Fetch profile data from Firebase on mount
   useEffect(() => {
     const fetchProfileData = async () => {
       const user = auth.currentUser;
@@ -45,7 +43,6 @@ const Settings = () => {
               gstNumber: data.gstNumber || '',
             });
 
-            // Sync profile photo and name with context to ensure it persists in the header
             setProfileData((prev) => ({
               ...prev,
               ownerName: data.name || '',
@@ -60,13 +57,11 @@ const Settings = () => {
     fetchProfileData();
   }, [setProfileData]);
 
-  // Handle input changes and update the state
   const handleChange = (e) => {
     const { name, value } = e.target;
     setDetails((prev) => ({ ...prev, [name]: value }));
   };
 
-  // Handle Save to Firebase and Update Context
   const handleSave = async () => {
     try {
       const user = auth.currentUser;
@@ -76,7 +71,7 @@ const Settings = () => {
           name: details.fullName,
           gender: details.gender,
           phone: details.phone,
-          state: details.state,
+          state: details.state, // Ensure state value is saved
           shopname: details.shopName,
           typeofshop: details.shopType,
           address: details.address,
@@ -92,10 +87,9 @@ const Settings = () => {
     } catch (error) {
       console.error('Error updating profile:', error);
     }
-    setIsEditable(false); // Lock fields after saving
+    setIsEditable(false);
   };
 
-  // Handle password reset and show popup
   const handlePasswordReset = async () => {
     try {
       await sendPasswordResetEmail(auth, details.email);
@@ -108,19 +102,13 @@ const Settings = () => {
 
   return (
     <div className="max-w-3xl mx-auto p-6">
-      {/* Header Section */}
       <div className="flex items-center mb-6">
         <div className="ml-4">
-          <h2 className="text-2xl font-bold">
-            {details.fullName || 'Owner Name'}
-          </h2>
-          <p className="text-gray-500">
-            {details.email || 'No Email ID found'}
-          </p>
+          <h2 className="text-2xl font-bold">{details.fullName || 'Owner Name'}</h2>
+          <p className="text-gray-500">{details.email || 'No Email ID found'}</p>
         </div>
       </div>
 
-      {/* Tab Navigation */}
       <div className="flex border-b mb-4">
         <button
           className={`py-2 px-4 ${activeTab === 'personal' ? 'border-b-2 border-black font-bold' : ''}`}
@@ -136,7 +124,6 @@ const Settings = () => {
         </button>
       </div>
 
-      {/* Form Section */}
       <form className="space-y-4">
         {activeTab === 'personal' && (
           <>
@@ -148,7 +135,7 @@ const Settings = () => {
                 value={details.fullName}
                 onChange={handleChange}
                 disabled={!isEditable}
-                className={`border p-2 rounded w-full ${isEditable ? 'border-blue-500' : 'bg-gray-100'}`}
+                className={`border-2 bg-white p-2 rounded w-full ${isEditable ? 'border-neutral-900' : 'bg-gray-100'}`}
               />
             </div>
             <div>
@@ -158,7 +145,7 @@ const Settings = () => {
                 value={details.gender}
                 onChange={handleChange}
                 disabled={!isEditable}
-                className="border p-2 rounded w-full"
+                className="border p-2 rounded text-black w-full"
               >
                 <option value="">Select Gender</option>
                 <option value="Male">Male</option>
@@ -174,48 +161,48 @@ const Settings = () => {
                 value={details.phone}
                 onChange={handleChange}
                 disabled={!isEditable}
-                className={`border p-2 rounded w-full ${isEditable ? 'border-blue-500' : 'bg-gray-100'}`}
+                className={`border bg-white p-2 rounded w-full ${isEditable ? 'border-neutral-900' : 'bg-gray-100'}`}
               />
             </div>
             <div>
               <label htmlFor="state" className="text-sm font-medium text-gray-600">State</label>
-              <select 
+              <select
                 name="state"
-                value={profileData.state}
+                value={details.state} // Correctly use details.state here
                 onChange={handleChange}
                 disabled={!isEditable}
-                className={`mt-2 p-3 border rounded-lg w-full focus:outline-none ${isEditable ? 'border-blue-500' : 'bg-gray-100 border-gray-300'}`}
+                className={`mt-2 p-3 bg-white border rounded-lg w-full focus:outline-none ${isEditable ? 'border-neutral-900' : 'bg-gray-100 border-gray-300'}`}
               >
-              <option value="">Select State</option>
-              <option value="Andhra Pradesh">Andhra Pradesh</option>
-              <option value="Arunachal Pradesh">Arunachal Pradesh</option>
-              <option value="Assam">Assam</option>
-              <option value="Bihar">Bihar</option>
-              <option value="Chhattisgarh">Chhattisgarh</option>
-              <option value="Goa">Goa</option>
-              <option value="Gujarat">Gujarat</option>
-              <option value="Haryana">Haryana</option>
-              <option value="Himachal Pradesh">Himachal Pradesh</option>
-              <option value="Jharkhand">Jharkhand</option>
-              <option value="Karnataka">Karnataka</option>
-              <option value="Kerala">Kerala</option>
-              <option value="Madhya Pradesh">Madhya Pradesh</option>
-              <option value="Maharashtra">Maharashtra</option>
-              <option value="Manipur">Manipur</option>
-              <option value="Meghalaya">Meghalaya</option>
-              <option value="Mizoram">Mizoram</option>
-              <option value="Nagaland">Nagaland</option>
-              <option value="Odisha">Odisha</option>
-              <option value="Punjab">Punjab</option>
-              <option value="Rajasthan">Rajasthan</option>
-              <option value="Sikkim">Sikkim</option>
-              <option value="Tamil Nadu">Tamil Nadu</option>
-              <option value="Telangana">Telangana</option>
-              <option value="Tripura">Tripura</option>
-              <option value="Uttar Pradesh">Uttar Pradesh</option>
-              <option value="Uttarakhand">Uttarakhand</option>
-              <option value="West Bengal">West Bengal</option>
-            </select>
+                <option value="">Select State</option>
+                <option value="Andhra Pradesh">Andhra Pradesh</option>
+                <option value="Arunachal Pradesh">Arunachal Pradesh</option>
+                <option value="Assam">Assam</option>
+                <option value="Bihar">Bihar</option>
+                <option value="Chhattisgarh">Chhattisgarh</option>
+                <option value="Goa">Goa</option>
+                <option value="Gujarat">Gujarat</option>
+                <option value="Haryana">Haryana</option>
+                <option value="Himachal Pradesh">Himachal Pradesh</option>
+                <option value="Jharkhand">Jharkhand</option>
+                <option value="Karnataka">Karnataka</option>
+                <option value="Kerala">Kerala</option>
+                <option value="Madhya Pradesh">Madhya Pradesh</option>
+                <option value="Maharashtra">Maharashtra</option>
+                <option value="Manipur">Manipur</option>
+                <option value="Meghalaya">Meghalaya</option>
+                <option value="Mizoram">Mizoram</option>
+                <option value="Nagaland">Nagaland</option>
+                <option value="Odisha">Odisha</option>
+                <option value="Punjab">Punjab</option>
+                <option value="Rajasthan">Rajasthan</option>
+                <option value="Sikkim">Sikkim</option>
+                <option value="Tamil Nadu">Tamil Nadu</option>
+                <option value="Telangana">Telangana</option>
+                <option value="Tripura">Tripura</option>
+                <option value="Uttar Pradesh">Uttar Pradesh</option>
+                <option value="Uttarakhand">Uttarakhand</option>
+                <option value="West Bengal">West Bengal</option>
+              </select>
             </div>
             <div>
               <button
@@ -225,55 +212,6 @@ const Settings = () => {
               >
                 Change Password
               </button>
-            </div>
-          </>
-        )}
-
-        {activeTab === 'shop' && (
-          <>
-            <div>
-              <label className="block mb-1">Shop Name</label>
-              <input
-                name="shopName"
-                type="text"
-                value={details.shopName}
-                onChange={handleChange}
-                disabled={!isEditable}
-                className={`border p-2 rounded w-full ${isEditable ? 'border-blue-500' : 'bg-gray-100'}`}
-              />
-            </div>
-            <div>
-              <label className="block mb-1">Shop Type</label>
-              <input
-                name="shopType"
-                type="text"
-                value={details.shopType}
-                onChange={handleChange}
-                disabled={!isEditable}
-                className={`border p-2 rounded w-full ${isEditable ? 'border-blue-500' : 'bg-gray-100'}`}
-              />
-            </div>
-            <div>
-              <label className="block mb-1">Address</label>
-              <input
-                name="address"
-                type="text"
-                value={details.address}
-                onChange={handleChange}
-                disabled={!isEditable}
-                className={`border p-2 rounded w-full ${isEditable ? 'border-blue-500' : 'bg-gray-100'}`}
-              />
-            </div>
-            <div>
-              <label className="block mb-1">GST Number</label>
-              <input
-                name="gstNumber"
-                type="text"
-                value={details.gstNumber}
-                onChange={handleChange}
-                disabled={!isEditable}
-                className={`border p-2 rounded w-full ${isEditable ? 'border-blue-500' : 'bg-gray-100'}`}
-              />
             </div>
           </>
         )}
@@ -299,9 +237,8 @@ const Settings = () => {
         </div>
       </form>
 
-      {/* Popup Message */}
       {popupMessage && (
-        <div className="fixed bottom-4 right-4 bg-gray-800 text-white py-2 px-4 rounded">
+        <div className="fixed bottom-4 right-4 bg-green-600 text-white py-2 px-4 rounded">
           {popupMessage}
         </div>
       )}
