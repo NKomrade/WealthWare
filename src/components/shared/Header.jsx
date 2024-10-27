@@ -7,14 +7,14 @@ import { useNavigate } from 'react-router-dom';
 import { signOut } from 'firebase/auth';
 import { auth, db } from '../../firebase'; 
 import { doc, getDoc } from 'firebase/firestore';
-import { useProfile } from '../../context/contextProfile';
+import { useProfile } from '../../context/contextProfile'; // Import Profile context
 
 export default function Header() {
   const navigate = useNavigate();
   const { profileData, setProfileData } = useProfile(); // Destructure context state
   const [loading, setLoading] = useState(true); // Track loading state for profile data
 
-  // Fetch user data on mount to ensure the Header stays in sync
+  // Fetch user data on mount or if profileData updates
   useEffect(() => {
     const fetchProfileData = async () => {
       const user = auth.currentUser;
@@ -41,7 +41,7 @@ export default function Header() {
     };
 
     fetchProfileData();
-  }, [setProfileData]);
+  }, [setProfileData]); // Run when setProfileData is updated
 
   const handleSignOut = async () => {
     try {
@@ -58,6 +58,7 @@ export default function Header() {
 
   return (
     <div className="bg-white h-16 px-6 flex items-center border-b border-gray-200 justify-between">
+      {/* Search Bar */}
       <div className="relative">
         <div className="relative flex items-center">
           <FiSearch className="text-gray-400 absolute left-3 h-5 w-5" />
@@ -69,10 +70,12 @@ export default function Header() {
         </div>
       </div>
 
+      {/* Profile Menu */}
       <div className="flex items-center gap-2">
         <Menu as="div" className="relative">
           <Menu.Button className="flex items-center gap-2 focus:outline-none">
             <div className="flex items-center">
+              {/* Profile Image or Icon */}
               <div className="w-10 h-10 rounded-full bg-sky-100 flex items-center justify-center overflow-hidden">
                 {profileData.profileImage ? (
                   <img
@@ -85,6 +88,8 @@ export default function Header() {
                   <IoMdPerson className="text-gray-500 text-2xl" />
                 )}
               </div>
+
+              {/* Owner Name and Role */}
               <div className="ml-2 text-left">
                 <div className="text-sm flex items-center gap-1">
                   {profileData.ownerName || 'Owner Name'}
@@ -95,6 +100,7 @@ export default function Header() {
             </div>
           </Menu.Button>
 
+          {/* Dropdown Menu */}
           <Transition
             as={Fragment}
             enter="transition ease-out duration-100"
@@ -106,6 +112,7 @@ export default function Header() {
           >
             <Menu.Items className="absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 focus:outline-none z-50">
               <div className="py-1">
+                {/* Profile Page Link */}
                 <Menu.Item>
                   {({ active }) => (
                     <div
@@ -119,6 +126,8 @@ export default function Header() {
                     </div>
                   )}
                 </Menu.Item>
+
+                {/* Settings Page Link */}
                 <Menu.Item>
                   {({ active }) => (
                     <div
@@ -132,6 +141,8 @@ export default function Header() {
                     </div>
                   )}
                 </Menu.Item>
+
+                {/* Sign Out */}
                 <Menu.Item>
                   {({ active }) => (
                     <div
