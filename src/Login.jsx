@@ -39,7 +39,7 @@ const Login = ({ setIsAuthenticated }) => {
       name.current.value &&
       email.current.value &&
       password.current.value &&
-      phone.current.value &&  // Ensure phone number is filled
+      phone.current.value &&  
       shopname.current.value &&
       typeofshop.current.value &&
       shoplogo.current.files.length > 0
@@ -63,11 +63,10 @@ const Login = ({ setIsAuthenticated }) => {
         // Format phone number with +1 prefix
         const formattedPhone = `${phone.current.value}`;
 
-        // Save the user's information in Firestore, including the formatted phone number
         await setDoc(doc(db, 'users', user.uid), {
           name: name.current.value,
           email: email.current.value,
-          phone: formattedPhone,  // Save formatted phone number to Firestore
+          phone: formattedPhone,  
           shopname: shopname.current.value,
           typeofshop: typeofshop.current.value,
           shoplogo: downloadURL,

@@ -1,8 +1,9 @@
 import { ResponsiveContainer, BarChart, CartesianGrid, XAxis, YAxis, Tooltip, Legend, Bar } from 'recharts';
 import Calendar from 'react-calendar';
 import 'react-calendar/dist/Calendar.css'; 
-import { useState } from 'react'; 
+import { useState } from 'react';
 
+// Data for Bar Chart
 const data = [
   { name: 'Mon', Income: 4000, Expense: 2400 },
   { name: 'Tue', Income: 3000, Expense: 1398 },
@@ -13,8 +14,29 @@ const data = [
   { name: 'Sun', Income: 1300, Expense: 800 },
 ];
 
+// Helper function to format date with an ordinal suffix
+function getFormattedDate(date) {
+  const day = date.getDate();
+  const month = date.toLocaleString('default', { month: 'long' });
+  const year = date.getFullYear();
+
+  const getOrdinalSuffix = (day) => {
+    if (day > 3 && day < 21) return 'th'; // Special case for teens
+    switch (day % 10) {
+      case 1: return 'st';
+      case 2: return 'nd';
+      case 3: return 'rd';
+      default: return 'th';
+    }
+  };
+
+  const suffix = getOrdinalSuffix(day);
+  return `${day}${suffix} ${month}, ${year}`;
+}
+
 export default function Dashboard() {
   const [date, setDate] = useState(new Date()); // Calendar state
+  const today = getFormattedDate(date); // Get today's formatted date
 
   const handleCardClick = (route) => {
     console.log(`Navigating to: ${route}`);
@@ -73,7 +95,7 @@ export default function Dashboard() {
 
         {/* Calendar Section */}
         <div className="bg-white p-6 rounded-xl shadow-md min-w-[20rem]">
-          <strong className="text-xl font-semibold text-gray-800 mb-4">Select Date</strong>
+          <strong className="text-xl font-semibold text-gray-800 mb-4">{today}</strong>
           <Calendar onChange={setDate} value={date} />
         </div>
       </div>
