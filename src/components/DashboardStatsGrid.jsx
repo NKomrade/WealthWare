@@ -86,7 +86,7 @@ export default function Dashboard() {
                 <YAxis />
                 <Tooltip />
                 <Legend />
-                <Bar dataKey="Income" fill="#0047AB" />
+                <Bar dataKey="Income" fill="#4682b4" />
                 <Bar dataKey="Expense" fill="#CEA2FD" />
               </BarChart>
             </ResponsiveContainer>
