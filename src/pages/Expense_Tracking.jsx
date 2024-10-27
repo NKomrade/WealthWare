@@ -76,7 +76,7 @@ export default function ExpenseTracker() {
           >
             + Add new expense
           </button>
-          <button className="bg-gray-300 px-3 py-2 rounded hover:bg-gray-400">
+          <button className="text-white bg-red-500 px-3 py-2 rounded hover:bg-red-600">
             Download report
           </button>
         </div>

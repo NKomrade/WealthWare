@@ -12,6 +12,7 @@ import Login from './Login';
 import Forgotpassword from './Forgotpassword';  
 import { auth } from './firebase';
 import { onAuthStateChanged } from 'firebase/auth';
+import { ProfileProvider } from './context/contextProfile';
 
 // Protected route component
 function ProtectedRoute({ isAuthenticated, children }) {
@@ -27,11 +28,7 @@ function App() {
     // Persist authentication status using Firebase onAuthStateChanged
     useEffect(() => {
         const unsubscribe = onAuthStateChanged(auth, (user) => {
-            if (user) {
-                setIsAuthenticated(true);
-            } else {
-                setIsAuthenticated(false);
-            }
+            setIsAuthenticated(!!user); // Set to true if user exists, false otherwise
         });
 
         // Cleanup subscription on unmount
@@ -39,32 +36,45 @@ function App() {
     }, []);
 
     return (
-        <Router>
-            <Routes>
-                {/* Public routes */}
-                <Route path="/login" element={<Login setIsAuthenticated={setIsAuthenticated} />} />
-                <Route path="/forgotpassword" element={<Forgotpassword />} /> {/* Forgot Password route */}
-                
-                {/* Protected routes */}
-                <Route path="/" element={
-                    <ProtectedRoute isAuthenticated={isAuthenticated}>
-                        <Layout />
-                    </ProtectedRoute>
-                }>
-                    {/* Nested routes inside the layout */}
-                    <Route index element={<Dashboard />} />
-                    <Route path="/inventory" element={<Inventory />} />
-                    <Route path="/invoices" element={<Invoices />} />
-                    <Route path="/expensetracking" element={<Expense_Tracking />} />
-                    <Route path="/salesreport" element={<Sales_Report />} />
-                    <Route path="/profile" element={<Profile />} />
-                    <Route path="/settings" element={<Settings />} />
-                </Route>
+        <ProfileProvider>
+            <Router>
+                <Routes>
+                    {/* Public routes */}
+                    <Route 
+                        path="/login" 
+                        element={<Login setIsAuthenticated={setIsAuthenticated} />} 
+                    />
+                    <Route path="/forgotpassword" element={<Forgotpassword />} />
 
-                {/* Fallback route */}
-                <Route path="*" element={<Navigate to={isAuthenticated ? "/" : "/login"} />} />
-            </Routes>
-        </Router>
+                    {/* Protected routes */}
+                    <Route 
+                        path="/" 
+                        element={
+                            <ProtectedRoute isAuthenticated={isAuthenticated}>
+                                <Layout />
+                            </ProtectedRoute>
+                        }
+                    >
+                        {/* Nested routes inside the layout */}
+                        <Route index element={<Dashboard />} />
+                        <Route path="/inventory" element={<Inventory />} />
+                        <Route path="/invoices" element={<Invoices />} />
+                        <Route path="/expensetracking" element={<Expense_Tracking />} />
+                        <Route path="/salesreport" element={<Sales_Report />} />
+                        <Route path="/profile" element={<Profile />} />
+                        <Route path="/settings" element={<Settings />} />
+                    </Route>
+
+                    {/* Fallback route */}
+                    <Route 
+                        path="*" 
+                        element={
+                            <Navigate to={isAuthenticated ? "/" : "/login"} />
+                        } 
+                    />
+                </Routes>
+            </Router>
+        </ProfileProvider>
     );
 }
 
