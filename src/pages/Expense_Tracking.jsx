@@ -32,8 +32,8 @@ export default function ExpenseTracker() {
 
       {/* Pie Chart Section */}
       <div className="bg-white p-6 rounded-lg shadow-md">
-        <h1 className="font-bold text-lg mb-4">Budgets</h1>
-        <ResponsiveContainer width="100%" height={250}>
+        <h1 className="font-bold text-lg">Budgets</h1>
+        <ResponsiveContainer width="100%" height={400}> 
           <PieChart>
             <Pie
               data={data}
@@ -41,8 +41,8 @@ export default function ExpenseTracker() {
               nameKey="name"
               cx="50%"
               cy="50%"
-              outerRadius={90}
-              innerRadius={60}
+              outerRadius={150}
+              innerRadius={100} 
               label={({ name }) => name}
             >
               {data.map((entry, index) => (
@@ -64,12 +64,12 @@ export default function ExpenseTracker() {
                 <span className="text-lg mr-2">{entry.name}</span>
                 <span className="text-sm text-gray-500">{`${entry.value} transactions`}</span>
               </div>
-              <span className="text-red-500 font-semibold">{`${entry.value * 200} ₹`}</span>
+              <span className="text-neutral-800 font-semibold">{`${entry.value * 200} ₹`}</span>
             </div>
           ))}
         </div>
 
-        <div className="mt-4 flex space-x-2">
+        <div className="mt-10 flex space-x-2">
           <button
             className="bg-blue-500 text-white px-3 py-2 rounded hover:bg-blue-600"
             onClick={() => setIsModalOpen(true)}
