@@ -1,16 +1,47 @@
-import React, { Fragment } from 'react';
+import React, { Fragment, useEffect, useState } from 'react';
 import { Menu, Transition } from '@headlessui/react';
 import { FiSearch, FiChevronDown } from 'react-icons/fi';
 import { IoMdPerson } from 'react-icons/io';
 import classNames from 'classnames';
 import { useNavigate } from 'react-router-dom';
 import { signOut } from 'firebase/auth';
-import { auth } from '../../firebase';
+import { auth, db } from '../../firebase'; 
+import { doc, getDoc } from 'firebase/firestore';
 import { useProfile } from '../../context/contextProfile';
 
 export default function Header() {
   const navigate = useNavigate();
-  const { profileData } = useProfile();
+  const { profileData, setProfileData } = useProfile(); // Destructure context state
+  const [loading, setLoading] = useState(true); // Track loading state for profile data
+
+  // Fetch user data on mount to ensure the Header stays in sync
+  useEffect(() => {
+    const fetchProfileData = async () => {
+      const user = auth.currentUser;
+
+      if (user) {
+        try {
+          const userDoc = doc(db, 'users', user.uid);
+          const userSnap = await getDoc(userDoc);
+
+          if (userSnap.exists()) {
+            const userData = userSnap.data();
+            setProfileData({
+              ownerName: userData.name || 'Owner Name',
+              profileImage: userData.shoplogo || '',
+            });
+          } else {
+            console.warn('No such user document!');
+          }
+        } catch (error) {
+          console.error('Error fetching profile data:', error);
+        }
+      }
+      setLoading(false); // Ensure loading is set to false after fetching
+    };
+
+    fetchProfileData();
+  }, [setProfileData]);
 
   const handleSignOut = async () => {
     try {
@@ -20,6 +51,10 @@ export default function Header() {
       console.error('Sign out error: ', error);
     }
   };
+
+  if (loading) {
+    return <div>Loading...</div>; // Optional: You can replace this with a spinner or placeholder
+  }
 
   return (
     <div className="bg-white h-16 px-6 flex items-center border-b border-gray-200 justify-between">
@@ -44,6 +79,7 @@ export default function Header() {
                     src={profileData.profileImage}
                     alt="Profile"
                     className="rounded-full w-full h-full object-cover"
+                    onError={(e) => (e.target.src = IoMdPerson)} // Fallback to icon on error
                   />
                 ) : (
                   <IoMdPerson className="text-gray-500 text-2xl" />
@@ -51,7 +87,7 @@ export default function Header() {
               </div>
               <div className="ml-2 text-left">
                 <div className="text-sm flex items-center gap-1">
-                  {profileData.ownerName}
+                  {profileData.ownerName || 'Owner Name'}
                   <FiChevronDown />
                 </div>
                 <div className="text-xs text-gray-500">Admin</div>
