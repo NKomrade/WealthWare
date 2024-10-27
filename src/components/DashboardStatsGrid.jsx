@@ -87,7 +87,7 @@ export default function Dashboard() {
                 <Tooltip />
                 <Legend />
                 <Bar dataKey="Income" fill="#0075FF" />
-                <Bar dataKey="Expense" fill="#5AADFA" />
+                <Bar dataKey="Expense" fill="#CEA2FD" />
               </BarChart>
             </ResponsiveContainer>
           </div>
