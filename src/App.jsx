@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { useState, useEffect, useCallback } from 'react';
 import Layout from './components/shared/Layout';
 import Dashboard from './pages/Dashboard';
@@ -14,53 +14,43 @@ import { auth } from './firebase';
 import { onAuthStateChanged } from 'firebase/auth';
 import { ProfileProvider } from './context/contextProfile';
 
-function useAuthRedirect(isAuthenticated) {
-    const location = useLocation();
-    
-    useEffect(() => {
-        if (!isAuthenticated && location.pathname !== '/login') {
-            console.log("Redirecting unauthenticated user to login..."); // Debugging
-            return <Navigate to="/login" replace />;
-        }
-    }, [isAuthenticated, location]);
-}
-
-// Protected route component to guard private routes
+// Protected route component to block unauthenticated users
 function ProtectedRoute({ isAuthenticated, children }) {
     return isAuthenticated ? children : <Navigate to="/login" replace />;
 }
 
 // Main App Component
 function App() {
-    const [isAuthenticated, setIsAuthenticated] = useState(false);
-    const [loading, setLoading] = useState(true);
+    const [isAuthenticated, setIsAuthenticated] = useState(false); // Tracks auth state
+    const [loading, setLoading] = useState(true); // Tracks loading state
 
-    // Callback to handle authentication state change
+    // Handle Firebase auth state change
     const handleAuthStateChange = useCallback((user) => {
-        console.log("Auth state changed:", user); // Debugging
-        setIsAuthenticated(!!user);
-        setLoading(false);
+        console.log("Auth state changed:", user); // Debug log
+        setIsAuthenticated(!!user); // Set authentication status (true if user exists)
+        setLoading(false); // Set loading to false once auth state is determined
     }, []);
 
-    // Subscribe to Firebase auth state changes
+    // Subscribe to Firebase authentication state changes
     useEffect(() => {
         const unsubscribe = onAuthStateChanged(auth, handleAuthStateChange);
-        return () => unsubscribe();
+        return () => unsubscribe(); // Cleanup subscription on component unmount
     }, [handleAuthStateChange]);
 
+    // Show a loading screen while checking the authentication status
     if (loading) {
-        return <div>Loading...</div>; 
+        return <div>Loading...</div>;
     }
 
     return (
         <ProfileProvider>
             <Router>
                 <Routes>
-                    {/* Public routes */}
+                    {/* Public Routes */}
                     <Route path="/login" element={<Login setIsAuthenticated={setIsAuthenticated} />} />
                     <Route path="/forgotpassword" element={<Forgotpassword />} />
 
-                    {/* Protected routes under Layout */}
+                    {/* Protected Routes - only accessible if authenticated */}
                     <Route
                         path="/"
                         element={
@@ -78,7 +68,7 @@ function App() {
                         <Route path="settings" element={<Settings />} />
                     </Route>
 
-                    {/* Fallback route for undefined paths */}
+                    {/* Fallback Route */}
                     <Route
                         path="*"
                         element={<Navigate to={isAuthenticated ? "/" : "/login"} replace />}
