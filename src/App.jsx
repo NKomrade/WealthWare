@@ -1,4 +1,3 @@
-// Import necessary libraries and components
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { useState, useEffect, useCallback } from 'react';
 import Layout from './components/shared/Layout';
@@ -15,7 +14,6 @@ import { auth } from './firebase';
 import { onAuthStateChanged } from 'firebase/auth';
 import { ProfileProvider } from './context/contextProfile';
 
-// Custom hook for handling authentication redirection
 function useAuthRedirect(isAuthenticated) {
     const location = useLocation();
     
