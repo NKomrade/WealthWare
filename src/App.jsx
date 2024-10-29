@@ -14,34 +14,38 @@ import { auth } from './firebase';
 import { onAuthStateChanged } from 'firebase/auth';
 import { ProfileProvider } from './context/contextProfile';
 
-// Protected route component to block unauthenticated users
-function ProtectedRoute({ isAuthenticated, children }) {
-    return isAuthenticated ? children : <Navigate to="/login" replace />;
+// Protected Route to block unauthenticated users
+function ProtectedRoute({ isAuthenticated, redirectTo = "/login", children }) {
+    if (!isAuthenticated) {
+        return <Navigate to={redirectTo} replace />;
+    }
+    return children;
 }
 
 // Main App Component
 function App() {
-    const [isAuthenticated, setIsAuthenticated] = useState(false); // Tracks auth state
-    const [loading, setLoading] = useState(true); // Tracks loading state
+    const [isAuthenticated, setIsAuthenticated] = useState(false); // Auth state
+    const [loading, setLoading] = useState(true); // Loading state
 
-    // Handle Firebase auth state change
+    // Firebase auth state change listener
     const handleAuthStateChange = useCallback((user) => {
-        console.log("Auth state changed:", user); // Debug log
-        setIsAuthenticated(!!user); // Set authentication status (true if user exists)
-        setLoading(false); // Set loading to false once auth state is determined
+        console.log("Auth state changed:", user);
+        setIsAuthenticated(!!user); // User exists -> true, else -> false
+        setLoading(false); // Auth state determined
     }, []);
 
     // Subscribe to Firebase authentication state changes
     useEffect(() => {
         const unsubscribe = onAuthStateChanged(auth, handleAuthStateChange);
-        return () => unsubscribe(); // Cleanup subscription on component unmount
+        return () => unsubscribe(); // Cleanup subscription on unmount
     }, [handleAuthStateChange]);
 
-    // Show a loading screen while checking the authentication status
+    // Display a loading screen while determining auth status
     if (loading) {
         return <div>Loading...</div>;
     }
 
+    // Render the app based on authentication state
     return (
         <ProfileProvider>
             <Router>
@@ -50,7 +54,7 @@ function App() {
                     <Route path="/login" element={<Login setIsAuthenticated={setIsAuthenticated} />} />
                     <Route path="/forgotpassword" element={<Forgotpassword />} />
 
-                    {/* Protected Routes - only accessible if authenticated */}
+                    {/* Protected Routes */}
                     <Route
                         path="/"
                         element={
