@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { collection, addDoc, getDocs } from 'firebase/firestore';
+import { collection, addDoc, getDocs, deleteDoc } from 'firebase/firestore';
 import { getAuth, onAuthStateChanged } from 'firebase/auth';
 import { db } from '../firebase';
 
@@ -8,6 +8,8 @@ const Inventory = () => {
   const [showPOModal, setShowPOModal] = useState(false);
   const [products, setProducts] = useState([]);
   const [purchaseOrders, setPurchaseOrders] = useState([]);
+  const [productSearchQuery, setProductSearchQuery] = useState(''); // Search query for inventory
+  const [poSearchQuery, setPoSearchQuery] = useState('');
 
   const [productData, setProductData] = useState({
     skuId: '',
@@ -66,6 +68,20 @@ const Inventory = () => {
     }
   };
 
+  // Filter Inventory based on SKU ID, Company Name, or Product Name
+  const filteredProducts = products.filter((product) =>
+    product.skuId.toLowerCase().includes(productSearchQuery.toLowerCase()) ||
+    product.companyName.toLowerCase().includes(productSearchQuery.toLowerCase()) ||
+    product.name.toLowerCase().includes(productSearchQuery.toLowerCase())
+  );
+
+  // Filter Purchase Orders based on PO ID, Company Name, or Supplier Address
+  const filteredPurchaseOrders = purchaseOrders.filter((po) =>
+    po.poId.toLowerCase().includes(poSearchQuery.toLowerCase()) ||
+    po.companyName.toLowerCase().includes(poSearchQuery.toLowerCase()) ||
+    po.supplierAddress.toLowerCase().includes(poSearchQuery.toLowerCase())
+  );
+
   const handleChange = (e) => {
     const { name, value } = e.target;
     setProductData({ ...productData, [name]: value });
@@ -122,89 +138,132 @@ const Inventory = () => {
     }
   };
   
+  const handleView = async (poId) => {
+    try {
+      const poRef = collection(db, `users/${user.uid}/purchaseOrders`);
+      const querySnapshot = await getDocs(poRef);
+      const poData = querySnapshot.docs
+        .map((doc) => doc.data())
+        .find((po) => po.poId === poId);
+  
+      if (poData) {
+        generatePDF(poData); // Generate and show the PDF
+      } else {
+        alert('Purchase Order not found.');
+      }
+    } catch (error) {
+      console.error('Error fetching PO: ', error);
+    }
+  };
+
+  const handleDelete = async (poId) => {
+    if (!user) {
+      console.error('No user logged in.');
+      return;
+    }
+    try {
+      // Reference to the purchase orders collection
+      const poRef = collection(db, `users/${user.uid}/purchaseOrders`);
+      const querySnapshot = await getDocs(poRef);
+      const docToDelete = querySnapshot.docs.find((doc) => doc.data().poId === poId);
+  
+      if (docToDelete) {
+        await deleteDoc(docToDelete.ref); // Use deleteDoc() from Firestore
+        // Update the state to reflect the change in UI
+        setPurchaseOrders(purchaseOrders.filter((po) => po.poId !== poId));
+        alert('Purchase order deleted successfully!');
+      } else {
+        console.warn('No matching purchase order found.');
+      }
+    } catch (error) {
+      console.error('Error deleting purchase order:', error);
+    }
+  };    
+  
   const generatePDF = (poData) => {
     const { poId, companyName, supplierAddress, state, items } = poData;
     const subtotal = items.reduce((acc, item) => acc + item.quantity * item.costPrice, 0);
     const tax = subtotal * 0.18;
     const total = subtotal + tax;
   
-    // Open new window for the PDF view
     const newWindow = window.open('', '_blank');
     newWindow.document.write(`
       <!DOCTYPE html>
       <html lang="en">
-        <head>
+      <head>
           <meta charset="UTF-8">
           <meta name="viewport" content="width=device-width, initial-scale=1.0">
           <title>Purchase Order - ${poId}</title>
           <style>
-            body { font-family: Arial, sans-serif; margin: 0; padding: 20px; }
-            .po-container { width: 80%; margin: auto; padding: 20px; border: 1px solid #ddd; }
-            .header { display: flex; justify-content: space-between; align-items: center; }
-            .po-details, .supplier-details { margin-top: 20px; }
-            table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-            th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-            th { background-color: #f2f2f2; }
-            .total { text-align: right; margin-top: 20px; }
+              /* General Styles */
+              body { font-family: Arial, sans-serif; margin: 0; padding: 0; }
+              .po-container { padding: 20px; }
+              .header { display: flex; justify-content: space-between; margin-bottom: 20px; }
+              table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+              th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+              th { background-color: #f2f2f2; }
+              .total { text-align: right; margin-top: 10px; }
+              
+              /* Print Styles */
+              @media print {
+                  @page { size: A4 portrait; margin: 20mm; } /* Ensuring portrait mode */
+                  body { margin: 0; }
+                  .print-button { display: none; } /* Hide print button on print */
+              }
           </style>
-        </head>
-        <body>
+      </head>
+      <body>
           <div class="po-container">
-            <div class="header">
-              <h1>Purchase Order</h1>
-              <p><strong>PO ID:</strong> ${poId}</p>
-              <p><strong>Date:</strong> ${new Date().toLocaleDateString()}</p>
-            </div>
-            <div class="supplier-details">
+              <div class="header">
+                  <h1>Purchase Order</h1>
+                  <p>PO ID: ${poId}</p>
+                  <p>Date: ${new Date().toLocaleDateString()}</p>
+              </div>
               <p><strong>Company Name:</strong> ${companyName}</p>
               <p><strong>Supplier Address:</strong> ${supplierAddress}</p>
               <p><strong>State:</strong> ${state}</p>
-            </div>
-            <table>
-              <thead>
-                <tr>
-                  <th>Brand Name</th>
-                  <th>Product</th>
-                  <th>Quantity</th>
-                  <th>Cost Price</th>
-                  <th>Total</th>
-                </tr>
-              </thead>
-              <tbody>
-                ${items
-                  .map(
-                    (item) => `
+              <table>
+                  <thead>
                       <tr>
-                        <td>${item.brandName}</td>
-                        <td>${item.brandProduct}</td>
-                        <td>${item.quantity}</td>
-                        <td>₹${item.costPrice}</td>
-                        <td>₹${(item.quantity * item.costPrice).toFixed(2)}</td>
+                          <th>Brand Name</th>
+                          <th>Product</th>
+                          <th>Quantity</th>
+                          <th>Cost Price</th>
+                          <th>Total</th>
                       </tr>
-                    `
-                  )
-                  .join('')}
-              </tbody>
-            </table>
-            <div class="total">
-              <p><strong>Subtotal:</strong> ₹${subtotal.toFixed(2)}</p>
-              <p><strong>Tax (18%):</strong> ₹${tax.toFixed(2)}</p>
-              <p><strong>Total Amount:</strong> ₹${total.toFixed(2)}</p>
-            </div>
+                  </thead>
+                  <tbody>
+                      ${items.map(item => `
+                          <tr>
+                              <td>${item.brandName}</td>
+                              <td>${item.brandProduct}</td>
+                              <td>${item.quantity}</td>
+                              <td>₹${item.costPrice}</td>
+                              <td>₹${(item.quantity * item.costPrice).toFixed(2)}</td>
+                          </tr>`).join('')}
+                  </tbody>
+              </table>
+              <div class="total">
+                  <p>Subtotal: ₹${subtotal.toFixed(2)}</p>
+                  <p>Tax (18%): ₹${tax.toFixed(2)}</p>
+                  <p><strong>Total: ₹${total.toFixed(2)}</strong></p>
+              </div>
           </div>
+
+          <!-- Print Button -->
+          <div class="print-button" style="text-align: center; margin-top: 20px;">
+              <button onclick="printPDF()" style="padding: 10px 20px; font-size: 16px;">Print / Save as PDF</button>
+          </div>
+
           <script>
-            window.onload = function() {
-              alert('PO generated successfully!');
-              window.print();
-              window.onafterprint = function() {
-                window.close();
-              };
-            };
+              function printPDF() {
+                  window.print(); // Opens the print dialog for print or save as PDF
+              }
           </script>
-        </body>
+      </body>
       </html>
     `);
-  };    
+  };      
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -242,9 +301,21 @@ const Inventory = () => {
         </button>
       </div>
 
-      <h3 className="text-xl font-semibold">Inventory List</h3>
+      <div className="mb-4 flex justify-between items-center">
+        <h3 className="text-xl font-semibold">Inventory List</h3>
+        <div className="flex items-center space-x-2">
+          <input
+            type="text"
+            placeholder="Search Inventory..."
+            className="border px-2 py-1 rounded"
+            value={productSearchQuery}
+            onChange={(e) => setProductSearchQuery(e.target.value)}
+          />
+          <button className="bg-blue-500 text-white px-4 py-1 rounded">Search</button>
+        </div>
+      </div>
       <table className="w-full mt-4 border-collapse border border-gray-400">
-        <thead className="bg-gray-700 text-white">
+        <thead className="bg-black text-white">
           <tr>
             <th className="border border-gray-300 p-2">SKU ID</th>
             <th className="border border-gray-300 p-2">Company Name</th>
@@ -256,8 +327,8 @@ const Inventory = () => {
           </tr>
         </thead>
         <tbody className="bg-gray-100">
-          {products.length > 0 ? (
-            products.map((product, index) => (
+          {filteredProducts.length > 0 ? (
+            filteredProducts.map((product, index) => (
               <tr key={index}>
                 <td className="border border-gray-300 p-2">{product.skuId}</td>
                 <td className="border border-gray-300 p-2">{product.companyName}</td>
@@ -278,41 +349,59 @@ const Inventory = () => {
         </tbody>
       </table>
 
-      <h3 className="text-xl font-semibold mt-8">Purchase Orders</h3>
+      {/* Purchase Order Section */}
+      <div className="mb-4 flex justify-between items-center pt-10">
+        <h3 className="text-xl font-semibold">Purchase Orders</h3>
+        <div className="flex items-center space-x-2">
+          <input
+            type="text"
+            placeholder="Search Purchase Orders..."
+            className="border px-2 py-1 rounded"
+            value={poSearchQuery}
+            onChange={(e) => setPoSearchQuery(e.target.value)}
+          />
+          <button className="bg-blue-500 text-white px-4 py-1 rounded">Search</button>
+        </div>
+      </div>
       <table className="w-full mt-4 border-collapse border border-gray-400">
-        <thead className="bg-gray-700 text-white">
+        <thead className="bg-black text-white">
           <tr>
             <th className="border border-gray-300 p-2">PO ID</th>
             <th className="border border-gray-300 p-2">Company Name</th>
             <th className="border border-gray-300 p-2">Supplier Address</th>
             <th className="border border-gray-300 p-2">State</th>
-            <th className="border border-gray-300 p-2">Brand Name</th>
-            <th className="border border-gray-300 p-2">Brand Product</th>
-            <th className="border border-gray-300 p-2">Quantity</th>
-            <th className="border border-gray-300 p-2">Cost Price</th>
+            <th className="border border-gray-300 p-2">Action</th>
           </tr>
         </thead>
         <tbody className="bg-gray-100">
-          {purchaseOrders.length > 0 ? (
-            purchaseOrders.map((po, index) => (
+          {filteredPurchaseOrders.length > 0 ? (
+            filteredPurchaseOrders.map((po, index) => (
               <tr key={index}>
                 <td className="border border-gray-300 p-2">{po.poId}</td>
                 <td className="border border-gray-300 p-2">{po.companyName}</td>
                 <td className="border border-gray-300 p-2">{po.supplierAddress}</td>
                 <td className="border border-gray-300 p-2">{po.state}</td>
-                {po.items.map((item, itemIndex) => (
-                  <tr key={itemIndex}>
-                    <td className="border border-gray-300 p-2">{item.brandName}</td>
-                    <td className="border border-gray-300 p-2">{item.brandProduct}</td>
-                    <td className="border border-gray-300 p-2">{item.quantity}</td>
-                    <td className="border border-gray-300 p-2">₹ {item.costPrice}</td>
-                  </tr>
-                ))}
+                <td className="border border-gray-300 p-2">
+                  <div className="flex items-center justify-center space-x-2">
+                    <button
+                      className="bg-blue-500 text-white px-2 py-1 rounded"
+                      onClick={() => handleView(po.poId)}
+                    >
+                      View
+                    </button>
+                    <button
+                      className="bg-red-500 text-white px-2 py-1 rounded"
+                      onClick={() => handleDelete(po.poId)}
+                    >
+                      Delete
+                    </button>
+                  </div>
+                </td>
               </tr>
             ))
           ) : (
             <tr>
-              <td colSpan="8" className="text-center p-2">
+              <td colSpan="5" className="text-center p-2">
                 No purchase orders available
               </td>
             </tr>

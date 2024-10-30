@@ -1,10 +1,7 @@
 import React, { useState, useEffect } from "react";
-import { db, storage } from "../firebase"; // Import Firebase storage
+import { db } from "../firebase"; // Import Firebase storage
 import { collection, getDocs, addDoc, deleteDoc, doc, query, where, updateDoc } from "firebase/firestore";
 import { getAuth } from "firebase/auth";
-import { ref, uploadBytes, getDownloadURL } from "firebase/storage"; // Firebase storage methods
-import { jsPDF } from "jspdf";
-import "jspdf-autotable";
 
 const Invoices = () => {
   const [products, setProducts] = useState([]);
@@ -154,19 +151,31 @@ const Invoices = () => {
     }
   };      
   
-  const handleViewInvoice = async (invoice) => {
+  const handleViewInvoice = async (invoiceID) => {
     try {
-      const pdfURL = invoice.pdfURL;
-      if (pdfURL) {
-        window.open(pdfURL, "_blank");
-      } else {
-        alert("No PDF found for this invoice.");
+      // Query the invoices collection by matching the provided invoiceID
+      const invoicesRef = collection(db, `users/${user.uid}/invoices`);
+      const q = query(invoicesRef, where("invoiceID", "==", invoiceID));
+      const querySnapshot = await getDocs(q);
+  
+      // If no matching invoice is found, alert the user
+      if (querySnapshot.empty) {
+        alert("No invoice found with this ID.");
+        return;
       }
+  
+      // Get the first matching invoice document and its data
+      const invoiceData = querySnapshot.docs[0].data();
+  
+      console.log("Invoice Data:", invoiceData); // Optional: For debugging purposes
+  
+      // Generate PDF with the fetched invoice data
+      generatePDF(invoiceData);
     } catch (error) {
       console.error("Error fetching invoice:", error);
       alert("Failed to fetch the invoice. Please try again.");
     }
-  };
+  };   
 
   const handleDeleteInvoice = async (id) => {
     if (user) {
@@ -176,169 +185,192 @@ const Invoices = () => {
     }
   };
 
-  const generatePDF = async (invoiceData) => {
-    const pdf = new jsPDF({ format: "a4", unit: "pt", orientation: "portrait" });
-  
-    // Set default font throughout the PDF
-    pdf.setFont("helvetica", "normal");
-  
-    // Set Header Section
-    pdf.setFontSize(20);
-    pdf.text("Invoice", 40, 40);
-  
-    pdf.setFontSize(12);
-    pdf.text(`Invoice ID: ${invoiceData.invoiceID}`, 400, 40);
-    pdf.text(`Date: ${new Date().toLocaleDateString()}`, 400, 60);
-  
-    // Customer Details
-    pdf.setFontSize(14);
-    pdf.text(`Customer Name: ${invoiceData.customerName}`, 40, 100);
-    pdf.text(`Customer Address: ${invoiceData.customerAddress}`, 40, 120);
-  
-    // Prepare Items Table
-    const items = invoiceData.items.map((item) => [
-      item.product,
-      item.quantity,
-      `₹${item.unitPrice}`,
-      `₹${(item.quantity * item.unitPrice).toFixed(2)}`,
-    ]);
-  
-    // Add Items Table with black column headers and consistent font
-    pdf.autoTable({
-      startY: 160,
-      head: [["Item", "Quantity", "Unit Price", "Total"]],
-      body: items,
-      theme: "grid",
-      headStyles: { fillColor: [0, 0, 0], textColor: [255, 255, 255] }, // Black header with white text
-      bodyStyles: { font: "helvetica", fontStyle: "normal" }, // Consistent font for table content
-    });
-  
-    // Calculate the Y position after the table
-    const finalY = pdf.lastAutoTable.finalY + 20;
-  
-    // Add Totals Section with consistent font and size
-    pdf.setFontSize(12); // Set font size for totals section
-    pdf.setFont("helvetica", "normal"); // Ensure consistent font
-  
-    pdf.text(`Subtotal: ₹${invoiceData.subtotal.toFixed(2)}`, 400, finalY);
-    pdf.text(`Tax (18%): ₹${invoiceData.tax.toFixed(2)}`, 400, finalY + 20);
-    pdf.text(`Total Amount: ₹${invoiceData.total.toFixed(2)}`, 400, finalY + 40);
-  
-    // Generate PDF Blob and Upload to Firebase Storage
-    const pdfBlob = pdf.output("blob");
-    const pdfRef = ref(storage, `invoices/${invoiceData.invoiceID}.pdf`);
-    await uploadBytes(pdfRef, pdfBlob);
-    const pdfURL = await getDownloadURL(pdfRef);
-  
-    return pdfURL;
-  };        
-
   const handlePrint = async (e) => {
     e.preventDefault();
-
-    if (selectedItems.length && customerName && customerAddress && paymentMethod) {
-      const invoiceData = {
-        invoiceID,
-        items: selectedItems.map((item) => ({
-          product: item.product.name,
-          quantity: item.quantity,
-          unitPrice: item.product.price,
-        })),
-        customerName,
-        customerAddress,
-        subtotal,
-        tax,
-        total,
-        paymentMethod,
-        date: new Date().toISOString().split("T")[0],
-      };
-
-      try {
-        const pdfURL = await generatePDF(invoiceData);
-        const invoiceWithPDF = { ...invoiceData, pdfURL };
-        await addDoc(collection(db, `users/${user.uid}/invoices`), invoiceWithPDF);
-
-        for (const [index, item] of selectedItems.entries()) {
-          if (item.product) {
-            await updateProductQuantity(index, item.quantity);
-          }
-        }
-
-        alert("Invoice saved successfully!");
-        const printWindow = window.open("", "_blank");
-        printWindow.document.write(`
-          <!DOCTYPE html>
-          <html lang="en">
-          <head>
-              <meta charset="UTF-8">
-              <meta name="viewport" content="width=device-width, initial-scale=1.0">
-              <title>Invoice</title>
-              <style>
-                  body { font-family: Arial, sans-serif; }
-                  .invoice-container { width: 80%; margin: auto; padding: 20px; border: 1px solid #ddd; }
-                  .header, .footer { display: flex; justify-content: space-between; align-items: center; }
-                  .invoice-details, .payment-details { margin-top: 20px; }
-                  table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-                  th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-                  th { background-color: #f2f2f2; }
-                  .total { text-align: right; }
-              </style>
-          </head>
-          <body>
-            <div class="invoice-container">
-              <div class="header">
-                <h1>Invoice</h1>
-                <p><strong>Invoice ID:</strong> ${invoiceID}</p>
-                <p><strong>Date:</strong> ${new Date().toLocaleDateString()}</p>
-              </div>
-              <div class="invoice-details">
-                <p><strong>Customer Name:</strong> ${customerName}</p>
-                <p><strong>Customer Address:</strong> ${customerAddress}</p>
-              </div>
-              <table>
-                <thead>
-                  <tr><th>Item</th><th>Quantity</th><th>Unit Price</th><th>Total</th></tr>
-                </thead>
-                <tbody>
-                  ${selectedItems
-                    .map(
-                      (item) => `
-                    <tr>
-                      <td>${item.product.name}</td>
-                      <td>${item.quantity}</td>
-                      <td>₹${item.product.price}</td>
-                      <td>₹${(item.product.price * item.quantity).toFixed(2)}</td>
-                    </tr>`
-                    )
-                    .join("")}
-                </tbody>
-              </table>
-              <div class="total">
-                <p><strong>Subtotal:</strong> ₹${subtotal.toFixed(2)}</p>
-                <p><strong>Tax (18%):</strong> ₹${tax.toFixed(2)}</p>
-                <p><strong>Total Amount:</strong> ₹${total.toFixed(2)}</p>
-              </div>
-            </div>
-            <script>
-              window.onload = function() {
-                window.print();
-                window.onafterprint = function() {
-                  window.close();
-                };
-              };
-            </script>
-          </body>
-          </html>
-        `);
-        printWindow.document.close();
-      } catch (error) {
-        console.error("Error processing invoice:", error);
-        alert(`Error: ${error.message}`);
-      }
-    } else {
+  
+    // Validate form fields
+    if (!selectedItems.length || !customerName || !customerAddress || !paymentMethod) {
       alert("Please fill out all required fields.");
+      return;
     }
-  };      
+  
+    const invoiceData = {
+      invoiceID,
+      items: selectedItems.map((item) => ({
+        product: item.product.name,
+        quantity: item.quantity,
+        unitPrice: item.product.price,
+      })),
+      customerName,
+      customerAddress,
+      subtotal,
+      tax,
+      total,
+      paymentMethod,
+      date: new Date().toISOString().split("T")[0],
+    };
+  
+    try {
+      // Save the invoice data to Firestore
+      const invoiceRef = await addDoc(
+        collection(db, `users/${user.uid}/invoices`),
+        invoiceData
+      );
+  
+      // Update product quantities in Firestore
+      for (const [index, item] of selectedItems.entries()) {
+        if (item.product) {
+          await updateProductQuantity(index, item.quantity);
+        }
+      }
+  
+      alert("Invoice saved successfully!");
+  
+      // Generate the invoice PDF in a new tab
+      const printWindow = window.open("", "_blank");
+      printWindow.document.write(generatePDF(invoiceData));
+      printWindow.document.close();
+    } catch (error) {
+      console.error("Error processing invoice:", error);
+      alert(`Error: ${error.message}`);
+    }
+  };
+  
+  const generatePDF = (invoice) => {
+    const { invoiceID, customerName, customerAddress, items, subtotal, tax, total } = invoice;
+  
+    const htmlContent = `
+      <!DOCTYPE html>
+      <html lang="en">
+        <head>
+          <meta charset="UTF-8" />
+          <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+          <title>Invoice - ${invoiceID}</title>
+          <style>
+            body {
+              font-family: Arial, sans-serif;
+            }
+
+            .invoice-container {
+              width: 80%;
+              margin: auto;
+              padding: 20px;
+              border: 1px solid #ddd;
+            }
+
+            .header {
+              display: flex;
+              justify-content: space-between;
+              align-items: center;
+            }
+
+            table {
+              width: 100%;
+              border-collapse: collapse;
+              margin-top: 20px;
+            }
+
+            th,
+            td {
+              border: 1px solid #ddd;
+              padding: 8px;
+              text-align: left;
+            }
+
+            th {
+              background-color: #f2f2f2;
+            }
+
+            .total {
+              text-align: right;
+              margin-top: 10px;
+            }
+
+            .print-button {
+              margin-top: 20px;
+              text-align: center;
+            }
+
+            /* CSS for printing */
+            @media print {
+              .print-button {
+                display: none; /* Hide print button when printing */
+              }
+
+              body {
+                -webkit-print-color-adjust: exact; /* Ensure colors are printed accurately */
+                margin: 0;
+                padding: 0;
+              }
+
+              .invoice-container {
+                width: 100%; /* Utilize full width for print */
+                border: none;
+              }
+
+              th {
+                background-color: #f2f2f2 !important; /* Ensure table headers print correctly */
+              }
+            }
+          </style>
+        </head>
+        <body>
+          <div class="invoice-container">
+            <div class="header">
+              <h1>Invoice</h1>
+              <p><strong>Invoice ID:</strong> ${invoiceID}</p>
+              <p><strong>Date:</strong> ${new Date().toLocaleDateString()}</p>
+            </div>
+            <p><strong>Customer Name:</strong> ${customerName}</p>
+            <p><strong>Customer Address:</strong> ${customerAddress}</p>
+            <table>
+              <thead>
+                <tr>
+                  <th>Item</th>
+                  <th>Quantity</th>
+                  <th>Unit Price</th>
+                  <th>Total</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${items
+                  .map(
+                    (item) => `
+                    <tr>
+                      <td>${item.product}</td>
+                      <td>${item.quantity}</td>
+                      <td>₹${item.unitPrice}</td>
+                      <td>₹${(item.unitPrice * item.quantity).toFixed(2)}</td>
+                    </tr>`
+                  )
+                  .join("")}
+              </tbody>
+            </table>
+            <div class="total">
+              <p><strong>Subtotal:</strong> ₹${subtotal.toFixed(2)}</p>
+              <p><strong>Tax (18%):</strong> ₹${tax.toFixed(2)}</p>
+              <p><strong>Total Amount:</strong> ₹${total.toFixed(2)}</p>
+            </div>
+            <div class="print-button">
+              <button onclick="printPDF()" style="padding: 10px 20px; font-size: 16px;">
+                Print / Save as PDF
+              </button>
+            </div>
+          </div>
+
+          <script>
+            function printPDF() {
+              window.print(); // Opens the print dialog for printing or saving as PDF
+            }
+          </script>
+        </body>
+      </html>
+    `;
+  
+    const newWindow = window.open("", "_blank");
+    newWindow.document.write(htmlContent);
+    newWindow.document.close();
+  };       
 
   return (
     <div className="flex flex-row space-x-4 p-6 bg-white shadow-lg rounded-lg">
@@ -487,7 +519,7 @@ const Invoices = () => {
                   <td className="px-2 py-1 border-b text-center truncate">₹{invoice.total.toFixed(2)}</td>
                   <td className="px-2 py-1 border-b text-center">
                     <button
-                      onClick={() => handleViewInvoice(invoice)}
+                      onClick={() => handleViewInvoice(invoice.invoiceID)}
                       className="bg-blue-500 text-white px-2 py-1 rounded-md text-xs mr-2"
                     >
                       View
