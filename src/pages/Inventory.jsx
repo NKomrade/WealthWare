@@ -101,21 +101,110 @@ const Inventory = () => {
   };
 
   const closeModal = () => setShowModal(false);
-
   const openPOModal = () => setShowPOModal(true);
   const closePOModal = () => setShowPOModal(false);
 
   const handlePOSubmit = async (e) => {
     e.preventDefault();
-    if (!user) return;
+    if (!user) {
+      console.error('No user logged in.');
+      return;
+    }
     try {
+      // Save PO data to Firebase
       await addDoc(collection(db, `users/${user.uid}/purchaseOrders`), poData);
       setPurchaseOrders([...purchaseOrders, poData]);
-      closePOModal();
+  
+      // Generate the PDF and open the print dialog
+      generatePDF(poData); 
     } catch (error) {
-      console.error('Error submitting PO: ', error);
+      console.error('Error adding purchase order: ', error);
     }
   };
+  
+  const generatePDF = (poData) => {
+    const { poId, companyName, supplierAddress, state, items } = poData;
+    const subtotal = items.reduce((acc, item) => acc + item.quantity * item.costPrice, 0);
+    const tax = subtotal * 0.18;
+    const total = subtotal + tax;
+  
+    // Open new window for the PDF view
+    const newWindow = window.open('', '_blank');
+    newWindow.document.write(`
+      <!DOCTYPE html>
+      <html lang="en">
+        <head>
+          <meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>Purchase Order - ${poId}</title>
+          <style>
+            body { font-family: Arial, sans-serif; margin: 0; padding: 20px; }
+            .po-container { width: 80%; margin: auto; padding: 20px; border: 1px solid #ddd; }
+            .header { display: flex; justify-content: space-between; align-items: center; }
+            .po-details, .supplier-details { margin-top: 20px; }
+            table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+            th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+            th { background-color: #f2f2f2; }
+            .total { text-align: right; margin-top: 20px; }
+          </style>
+        </head>
+        <body>
+          <div class="po-container">
+            <div class="header">
+              <h1>Purchase Order</h1>
+              <p><strong>PO ID:</strong> ${poId}</p>
+              <p><strong>Date:</strong> ${new Date().toLocaleDateString()}</p>
+            </div>
+            <div class="supplier-details">
+              <p><strong>Company Name:</strong> ${companyName}</p>
+              <p><strong>Supplier Address:</strong> ${supplierAddress}</p>
+              <p><strong>State:</strong> ${state}</p>
+            </div>
+            <table>
+              <thead>
+                <tr>
+                  <th>Brand Name</th>
+                  <th>Product</th>
+                  <th>Quantity</th>
+                  <th>Cost Price</th>
+                  <th>Total</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${items
+                  .map(
+                    (item) => `
+                      <tr>
+                        <td>${item.brandName}</td>
+                        <td>${item.brandProduct}</td>
+                        <td>${item.quantity}</td>
+                        <td>₹${item.costPrice}</td>
+                        <td>₹${(item.quantity * item.costPrice).toFixed(2)}</td>
+                      </tr>
+                    `
+                  )
+                  .join('')}
+              </tbody>
+            </table>
+            <div class="total">
+              <p><strong>Subtotal:</strong> ₹${subtotal.toFixed(2)}</p>
+              <p><strong>Tax (18%):</strong> ₹${tax.toFixed(2)}</p>
+              <p><strong>Total Amount:</strong> ₹${total.toFixed(2)}</p>
+            </div>
+          </div>
+          <script>
+            window.onload = function() {
+              alert('PO generated successfully!');
+              window.print();
+              window.onafterprint = function() {
+                window.close();
+              };
+            };
+          </script>
+        </body>
+      </html>
+    `);
+  };    
 
   const handleSubmit = async (e) => {
     e.preventDefault();
