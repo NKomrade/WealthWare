@@ -178,43 +178,60 @@ const Invoices = () => {
 
   const generatePDF = async (invoiceData) => {
     const pdf = new jsPDF({ format: "a4", unit: "pt", orientation: "portrait" });
-
+  
+    // Set default font throughout the PDF
+    pdf.setFont("helvetica", "normal");
+  
+    // Set Header Section
     pdf.setFontSize(20);
     pdf.text("Invoice", 40, 40);
+  
     pdf.setFontSize(12);
-    pdf.text(`Invoice ID: ${invoiceData.invoiceID}`, 40, 70);
-    pdf.text(`Date: ${new Date().toLocaleDateString()}`, 40, 90);
-
+    pdf.text(`Invoice ID: ${invoiceData.invoiceID}`, 400, 40);
+    pdf.text(`Date: ${new Date().toLocaleDateString()}`, 400, 60);
+  
+    // Customer Details
     pdf.setFontSize(14);
-    pdf.text(`Customer Name: ${invoiceData.customerName}`, 40, 130);
-    pdf.text(`Customer Address: ${invoiceData.customerAddress}`, 40, 150);
-
+    pdf.text(`Customer Name: ${invoiceData.customerName}`, 40, 100);
+    pdf.text(`Customer Address: ${invoiceData.customerAddress}`, 40, 120);
+  
+    // Prepare Items Table
     const items = invoiceData.items.map((item) => [
       item.product,
       item.quantity,
       `₹${item.unitPrice}`,
       `₹${(item.quantity * item.unitPrice).toFixed(2)}`,
     ]);
-
+  
+    // Add Items Table with black column headers and consistent font
     pdf.autoTable({
-      startY: 180,
+      startY: 160,
       head: [["Item", "Quantity", "Unit Price", "Total"]],
       body: items,
       theme: "grid",
+      headStyles: { fillColor: [0, 0, 0], textColor: [255, 255, 255] }, // Black header with white text
+      bodyStyles: { font: "helvetica", fontStyle: "normal" }, // Consistent font for table content
     });
-
+  
+    // Calculate the Y position after the table
     const finalY = pdf.lastAutoTable.finalY + 20;
-    pdf.text(`Subtotal: ₹${invoiceData.subtotal.toFixed(2)}`, 40, finalY);
-    pdf.text(`Tax (18%): ₹${invoiceData.tax.toFixed(2)}`, 40, finalY + 20);
-    pdf.text(`Total: ₹${invoiceData.total.toFixed(2)}`, 40, finalY + 40);
-
+  
+    // Add Totals Section with consistent font and size
+    pdf.setFontSize(12); // Set font size for totals section
+    pdf.setFont("helvetica", "normal"); // Ensure consistent font
+  
+    pdf.text(`Subtotal: ₹${invoiceData.subtotal.toFixed(2)}`, 400, finalY);
+    pdf.text(`Tax (18%): ₹${invoiceData.tax.toFixed(2)}`, 400, finalY + 20);
+    pdf.text(`Total Amount: ₹${invoiceData.total.toFixed(2)}`, 400, finalY + 40);
+  
+    // Generate PDF Blob and Upload to Firebase Storage
     const pdfBlob = pdf.output("blob");
     const pdfRef = ref(storage, `invoices/${invoiceData.invoiceID}.pdf`);
     await uploadBytes(pdfRef, pdfBlob);
     const pdfURL = await getDownloadURL(pdfRef);
-
+  
     return pdfURL;
-  };
+  };        
 
   const handlePrint = async (e) => {
     e.preventDefault();
@@ -450,42 +467,42 @@ const Invoices = () => {
   
       {/* Right Section - Invoices List */}
       <div className="w-1/2 p-4 bg-white shadow-md rounded-md">
-        <h3 className="text-xl font-semibold mb-4">Invoices List</h3>
-        <table className="min-w-full border border-gray-300">
-          <thead>
-            <tr>
-              <th className="px-4 py-2 border-b">Invoice ID</th>
-              <th className="px-4 py-2 border-b">Date</th>
-              <th className="px-4 py-2 border-b">Customer</th>
-              <th className="px-4 py-2 border-b">Total Amount</th>
-              <th className="px-4 py-2 border-b">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {invoices.map((invoice) => (
-              <tr key={invoice.id}>
-                <td className="px-4 py-2 border-b">{invoice.invoiceID}</td>
-                <td className="px-4 py-2 border-b">{invoice.date}</td>
-                <td className="px-4 py-2 border-b">{invoice.customerName}</td>
-                <td className="px-4 py-2 border-b">₹{invoice.total.toFixed(2)}</td>
-                <td>
-                  <button
-                    onClick={() => handleViewInvoice(invoice)}
-                    className="bg-blue-500 text-white px-2 py-1 rounded-md mr-2"
-                  >
-                    View
-                  </button>
-                  <button
-                    onClick={() => handleDeleteInvoice(invoice.id)}
-                    className="bg-red-500 text-white px-2 py-1 rounded-md"
-                  >
-                    Delete
-                  </button>
-                </td>
+          <h3 className="text-xl font-semibold mb-4">Invoices List</h3>
+          <table className="min-w-full border border-gray-300 table-fixed">
+            <thead>
+              <tr>
+                <th className="px-2 py-1 border-b text-sm font-medium text-gray-700">Invoice ID</th>
+                <th className="px-2 py-1 border-b text-sm font-medium text-gray-700">Date</th>
+                <th className="px-2 py-1 border-b text-sm font-medium text-gray-700">Customer</th>
+                <th className="px-2 py-1 border-b text-sm font-medium text-gray-700">Total Amount</th>
+                <th className="px-2 py-1 border-b text-sm font-medium text-gray-700">Actions</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {invoices.map((invoice) => (
+                <tr key={invoice.id} className="text-sm">
+                  <td className="px-2 py-1 border-b text-center truncate">{invoice.invoiceID}</td>
+                  <td className="px-2 py-1 border-b text-center truncate">{invoice.date}</td>
+                  <td className="px-2 py-1 border-b text-center truncate">{invoice.customerName}</td>
+                  <td className="px-2 py-1 border-b text-center truncate">₹{invoice.total.toFixed(2)}</td>
+                  <td className="px-2 py-1 border-b text-center">
+                    <button
+                      onClick={() => handleViewInvoice(invoice)}
+                      className="bg-blue-500 text-white px-2 py-1 rounded-md text-xs mr-2"
+                    >
+                      View
+                    </button>
+                    <button
+                      onClick={() => handleDeleteInvoice(invoice.id)}
+                      className="bg-red-500 text-white px-2 py-1 rounded-md text-xs -ml-1"
+                    >
+                      Delete
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
       </div>
     </div>
   );  
