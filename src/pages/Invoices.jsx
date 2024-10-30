@@ -81,12 +81,15 @@ const Invoices = () => {
     setSelectedItems(updatedItems);
   };
 
-  const handleProductChange = (index, productId) => {
-    const selectedProduct = products.find((p) => p.id === productId);
+  const handleProductChange = async (index, skuId) => {
+    const selectedProductDoc = await searchProductById(skuId);
+    if (!selectedProductDoc) return;
+  
+    const selectedProduct = selectedProductDoc.data();
     const updatedItems = [...selectedItems];
     updatedItems[index].product = selectedProduct;
     setSelectedItems(updatedItems);
-  };  
+  };    
 
   const handleQuantityChange = (index, quantity) => {
     const updatedItems = [...selectedItems];
@@ -99,13 +102,13 @@ const Invoices = () => {
     }
   };
 
-  const searchProductByID = async (productId) => {
+  const searchProductById = async (skuId) => {
     try {
-      const q = query(collection(db, `users/${user.uid}/products`), where("id", "==", productId));
+      const q = query(collection(db, `users/${user.uid}/products`), where("skuId", "==", skuId));
       const querySnapshot = await getDocs(q);
   
       if (querySnapshot.empty) {
-        console.error(`Product with ID ${productId} not found.`);
+        console.error(`Product with SKU ID ${skuId} not found.`);
         return null;
       }
   
@@ -113,7 +116,7 @@ const Invoices = () => {
       console.log("Found Product:", productDoc.data());
       return productDoc;
     } catch (error) {
-      console.error("Error searching for product by ID:", error);
+      console.error("Error searching for product by SKU ID:", error);
     }
   };
 
@@ -126,30 +129,32 @@ const Invoices = () => {
       return;
     }
   
-    const productId = product.id; // Example: 'PROD-1454'
-    console.log(`Searching for product with ID: ${productId}`);
+    const skuId = product.skuId; // Use the correct field name
+    console.log(`Searching for product with SKU ID: ${skuId}`);
   
     try {
-      // Use a query to search by product 'id' field if necessary
-      const productDoc = await searchProductByID(productId);
+      const productDoc = await searchProductById(skuId);
   
       if (!productDoc) {
-        console.error(`Product with ID ${productId} not found.`);
+        console.error(`Product with SKU ID ${skuId} not found.`);
         return;
       }
   
       const productData = productDoc.data();
-      console.log("Fetched Product Data:", productData);
-  
-      const availableQuantity = productData.quantity;
+      const availableQuantity = parseInt(productData.quantity);
       const newQuantity = availableQuantity - quantity;
+  
+      if (newQuantity < 0) {
+        alert("Not enough stock available.");
+        return;
+      }
   
       await updateDoc(productDoc.ref, { quantity: newQuantity });
       console.log(`Updated ${product.name} to new quantity: ${newQuantity}`);
     } catch (error) {
       console.error("Error updating product quantity:", error);
     }
-  };      
+  };        
   
   const handleViewInvoice = async (invoiceID) => {
     try {
@@ -403,15 +408,15 @@ const Invoices = () => {
               <div>
                 <label className="block text-sm font-medium text-gray-700">Product</label>
                 <select
-                  value={item.product?.id || ""}
+                  value={item.product?.skuId || ""}
                   onChange={(e) => handleProductChange(index, e.target.value)}
                   required
                   className="mt-1 block w-full p-2 border border-gray-300 rounded-md"
                 >
                   <option value="">Select a product</option>
                   {products.map((product) => (
-                    <option key={product.id} value={product.id}>
-                      {product.name} - ₹{product.price} (Available: {product.quantity})
+                    <option key={product.skuId} value={product.skuId}>
+                      {product.name} - ₹{product.price} (SKU: {product.skuId}, Available: {product.quantity})
                     </option>
                   ))}
                 </select>

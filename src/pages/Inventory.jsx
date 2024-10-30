@@ -318,9 +318,9 @@ const Inventory = () => {
         <thead className="bg-black text-white">
           <tr>
             <th className="border border-gray-300 p-2">SKU ID</th>
-            <th className="border border-gray-300 p-2">Company Name</th>
+            <th className="border border-gray-300 p-2">Brand Name</th>
             <th className="border border-gray-300 p-2">Product Name</th>
-            <th className="border border-gray-300 p-2">Price</th>
+            <th className="border border-gray-300 p-2">Selling Price</th>
             <th className="border border-gray-300 p-2">Quantity</th>
             <th className="border border-gray-300 p-2">Description</th>
             <th className="border border-gray-300 p-2">Purchase Date</th>

@@ -31,6 +31,7 @@ function SalesReport() {
                     id: doc.id,
                     ...doc.data(),
                 }));
+                console.log('Fetched Products:', fetchedProducts);
                 setProducts(fetchedProducts);
             } catch (error) {
                 console.error('Error fetching products:', error);
@@ -74,22 +75,28 @@ function SalesReport() {
     }, [fromDate, toDate, user]);
 
     useEffect(() => {
-        fetchProducts(); 
-        fetchSalesData(); 
+        fetchProducts();
+        fetchSalesData();
     }, [fetchProducts, fetchSalesData]);
 
-    const getProductID = (productName) => {
+    const getProductName = (productName) => {
+        console.log('Looking for Product Name:', productName); // Debugging log
+    
         const product = products.find((p) => p.name === productName);
-        return product ? product.id : 'N/A';
-    };
-
+        console.log('Found Product:', product); // Verify if the product is found
+    
+        // If product exists, return its SKU ID; otherwise, return 'Unknown Product'
+        return product ? product.skuId : 'Unknown Product';
+    };           
+    
     const searchInvoices = (invoice) => {
         const searchLower = searchTerm.toLowerCase();
         const matchesInvoiceID = invoice.invoiceID?.toLowerCase().includes(searchLower);
         const matchesCustomerName = invoice.customerName?.toLowerCase().includes(searchLower);
 
         const matchesProductID = invoice.items.some((item) => {
-            const productID = getProductID(item.product);
+            const productID = getProductName(item.skuId);
+            console.log('Product ID from SKU:', productID); // Debugging log
             return productID.toLowerCase().includes(searchLower);
         });
 
@@ -116,6 +123,7 @@ function SalesReport() {
                     sale.id === invoiceId ? { ...sale, status: newStatus } : sale
                 )
             );
+            console.log(`Updated status of Invoice ${invoiceId} to ${newStatus}`);
         } catch (error) {
             console.error('Error updating status:', error);
         }
@@ -196,7 +204,7 @@ function SalesReport() {
                     <tr className="bg-gray-200">
                         <th className="py-2 px-4 border">Invoice ID</th>
                         <th className="py-2 px-4 border">Customer Name</th>
-                        <th className="py-2 px-4 border">Product ID</th>
+                        <th className="py-2 px-4 border">SKU ID</th>
                         <th className="py-2 px-4 border">Amount</th>
                         <th className="py-2 px-4 border">Payment Method</th>
                         <th className="py-2 px-4 border">Status</th>
@@ -204,13 +212,25 @@ function SalesReport() {
                 </thead>
                 <tbody>
                     {filteredSalesData.length > 0 ? (
-                        filteredSalesData.map((invoice) =>
-                            invoice.items.map((item, index) => (
-                                <tr key={`${invoice.id}-${index}`}>
+                        filteredSalesData.map((invoice) => {
+                            // Collect all SKU IDs from the items in the invoice
+                            const productDetails = invoice.items
+                                .map((item) => getProductName(item.product)) // Call only once
+                                .join(', '); // Join product SKUs with a comma
+
+                            // Fetch the total amount directly from the invoice (if available)
+                            const totalAmount = invoice.total || 
+                                invoice.items.reduce(
+                                    (acc, item) => acc + item.unitPrice * item.quantity,
+                                    0
+                                );
+
+                            return (
+                                <tr key={invoice.id}>
                                     <td className="py-2 px-4 border">{invoice.invoiceID}</td>
                                     <td className="py-2 px-4 border">{invoice.customerName}</td>
-                                    <td className="py-2 px-4 border">{getProductID(item.product)}</td>
-                                    <td className="py-2 px-4 border">{`₹${item.unitPrice * item.quantity}`}</td>
+                                    <td className="py-2 px-4 border">{productDetails}</td> {/* Corrected */}
+                                    <td className="py-2 px-4 border">{`₹${totalAmount}`}</td> {/* Total Amount */}
                                     <td className="py-2 px-4 border">{invoice.paymentMethod}</td>
                                     <td
                                         className="py-2 px-4 border cursor-pointer"
@@ -219,13 +239,11 @@ function SalesReport() {
                                         {invoice.status || 'Pending'}
                                     </td>
                                 </tr>
-                            ))
-                        )
+                            );
+                        })
                     ) : (
                         <tr>
-                            <td colSpan="6" className="text-center py-4">
-                                No data available.
-                            </td>
+                            <td colSpan="6" className="text-center py-4">No data available.</td>
                         </tr>
                     )}
                 </tbody>
