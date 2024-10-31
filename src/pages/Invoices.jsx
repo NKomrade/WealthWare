@@ -251,52 +251,63 @@ const Invoices = () => {
           <meta charset="UTF-8" />
           <meta name="viewport" content="width=device-width, initial-scale=1.0" />
           <title>Invoice - ${invoiceID}</title>
+          <script src="https://cdn.tailwindcss.com"></script>
+        </head>
+        <body class="bg-gray-100 font-sans">
+          <div class="invoice-container w-4/5 mx-auto p-6 bg-white border border-gray-300 rounded-lg mt-10">
+            <div class="header flex justify-between items-center mb-6">
+              <h1 class="text-3xl font-bold">Invoice</h1>
+              <div class="text-right space-y-1">
+                <p><span class="font-semibold">Invoice ID:</span> ${invoiceID}</p>
+                <p class="ml-2"><span class="font-semibold">Date:</span> ${new Date().toLocaleDateString()}</p>
+              </div>
+            </div>
+            <p><span class="font-semibold">Customer Name:</span> ${customerName}</p>
+            <p><span class="font-semibold">Customer Address:</span> ${customerAddress}</p>
+            
+            <table class="w-full border-collapse mt-6">
+              <thead>
+                <tr>
+                  <th class="border border-gray-300 px-4 py-2 bg-black text-left text-white">Item</th>
+                  <th class="border border-gray-300 px-4 py-2 bg-black text-left text-white">Quantity</th>
+                  <th class="border border-gray-300 px-4 py-2 bg-black text-left text-white">Unit Price</th>
+                  <th class="border border-gray-300 px-4 py-2 bg-black text-left text-white">Total</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${items
+                  .map(
+                    (item) => `
+                    <tr>
+                      <td class="border border-gray-300 px-4 py-2">${item.product}</td>
+                      <td class="border border-gray-300 px-4 py-2">${item.quantity}</td>
+                      <td class="border border-gray-300 px-4 py-2">₹${item.unitPrice}</td>
+                      <td class="border border-gray-300 px-4 py-2">₹${(item.unitPrice * item.quantity).toFixed(2)}</td>
+                    </tr>`
+                  )
+                  .join("")}
+              </tbody>
+            </table>
+
+            <div class="total text-right mt-4 space-y-1">
+              <p><span class="font-semibold">Subtotal:</span> ₹${subtotal.toFixed(2)}</p>
+              <p><span class="font-semibold">Tax (18%):</span> ₹${tax.toFixed(2)}</p>
+              <p><span class="font-semibold text-lg">Total Amount:</span> ₹${total.toFixed(2)}</p>
+            </div>
+          </div>
+          <div class="print-button text-center mt-6">
+            <button onclick="printPDF()" class="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600">
+              Print / Save as PDF
+            </button>
+          </div>
+
+          <script>
+            function printPDF() {
+              window.print(); // Opens the print dialog for printing or saving as PDF
+            }
+          </script>
+          
           <style>
-            body {
-              font-family: Arial, sans-serif;
-            }
-
-            .invoice-container {
-              width: 80%;
-              margin: auto;
-              padding: 20px;
-              border: 1px solid #ddd;
-            }
-
-            .header {
-              display: flex;
-              justify-content: space-between;
-              align-items: center;
-            }
-
-            table {
-              width: 100%;
-              border-collapse: collapse;
-              margin-top: 20px;
-            }
-
-            th,
-            td {
-              border: 1px solid #ddd;
-              padding: 8px;
-              text-align: left;
-            }
-
-            th {
-              background-color: #f2f2f2;
-            }
-
-            .total {
-              text-align: right;
-              margin-top: 10px;
-            }
-
-            .print-button {
-              margin-top: 20px;
-              text-align: center;
-            }
-
-            /* CSS for printing */
             @media print {
               .print-button {
                 display: none; /* Hide print button when printing */
@@ -313,61 +324,13 @@ const Invoices = () => {
                 border: none;
               }
 
-              th {
-                background-color: #f2f2f2 !important; /* Ensure table headers print correctly */
+              /* Set page orientation to portrait */
+              @page {
+                size: A4 portrait; /* Set A4 paper size in portrait orientation */
+                margin: 1cm;
               }
             }
           </style>
-        </head>
-        <body>
-          <div class="invoice-container">
-            <div class="header">
-              <h1>Invoice</h1>
-              <p><strong>Invoice ID:</strong> ${invoiceID}</p>
-              <p><strong>Date:</strong> ${new Date().toLocaleDateString()}</p>
-            </div>
-            <p><strong>Customer Name:</strong> ${customerName}</p>
-            <p><strong>Customer Address:</strong> ${customerAddress}</p>
-            <table>
-              <thead>
-                <tr>
-                  <th>Item</th>
-                  <th>Quantity</th>
-                  <th>Unit Price</th>
-                  <th>Total</th>
-                </tr>
-              </thead>
-              <tbody>
-                ${items
-                  .map(
-                    (item) => `
-                    <tr>
-                      <td>${item.product}</td>
-                      <td>${item.quantity}</td>
-                      <td>₹${item.unitPrice}</td>
-                      <td>₹${(item.unitPrice * item.quantity).toFixed(2)}</td>
-                    </tr>`
-                  )
-                  .join("")}
-              </tbody>
-            </table>
-            <div class="total">
-              <p><strong>Subtotal:</strong> ₹${subtotal.toFixed(2)}</p>
-              <p><strong>Tax (18%):</strong> ₹${tax.toFixed(2)}</p>
-              <p><strong>Total Amount:</strong> ₹${total.toFixed(2)}</p>
-            </div>
-            <div class="print-button">
-              <button onclick="printPDF()" style="padding: 10px 20px; font-size: 16px;">
-                Print / Save as PDF
-              </button>
-            </div>
-          </div>
-
-          <script>
-            function printPDF() {
-              window.print(); // Opens the print dialog for printing or saving as PDF
-            }
-          </script>
         </body>
       </html>
     `;

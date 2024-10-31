@@ -194,65 +194,55 @@ const Inventory = () => {
           <meta charset="UTF-8">
           <meta name="viewport" content="width=device-width, initial-scale=1.0">
           <title>Purchase Order - ${poId}</title>
-          <style>
-              /* General Styles */
-              body { font-family: Arial, sans-serif; margin: 0; padding: 0; }
-              .po-container { padding: 20px; }
-              .header { display: flex; justify-content: space-between; margin-bottom: 20px; }
-              table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-              th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-              th { background-color: #f2f2f2; }
-              .total { text-align: right; margin-top: 10px; }
-              
-              /* Print Styles */
-              @media print {
-                  @page { size: A4 portrait; margin: 20mm; } /* Ensuring portrait mode */
-                  body { margin: 0; }
-                  .print-button { display: none; } /* Hide print button on print */
-              }
-          </style>
+          <script src="https://cdn.tailwindcss.com"></script>
       </head>
-      <body>
-          <div class="po-container">
-              <div class="header">
-                  <h1>Purchase Order</h1>
-                  <p>PO ID: ${poId}</p>
-                  <p>Date: ${new Date().toLocaleDateString()}</p>
+      <body class="bg-gray-100 font-sans">
+          <div class="po-container w-4/5 mx-auto p-6 bg-white border border-gray-300 rounded-lg mt-10">
+              <div class="header flex justify-between items-center mb-6">
+                  <h1 class="text-3xl font-bold">Purchase Order</h1>
+                  <div class="text-right space-y-1">
+                      <p><span class="font-semibold">PO ID:</span> ${poId}</p>
+                      <p class="ml-2"><span class="font-semibold">Date:</span> ${new Date().toLocaleDateString()}</p>
+                  </div>
               </div>
-              <p><strong>Company Name:</strong> ${companyName}</p>
-              <p><strong>Supplier Address:</strong> ${supplierAddress}</p>
-              <p><strong>State:</strong> ${state}</p>
-              <table>
+              <p><span class="font-semibold">Company Name:</span> ${companyName}</p>
+              <p><span class="font-semibold">Supplier Address:</span> ${supplierAddress}</p>
+              <p><span class="font-semibold">State:</span> ${state}</p>
+              
+              <table class="w-full border-collapse mt-6">
                   <thead>
                       <tr>
-                          <th>Brand Name</th>
-                          <th>Product</th>
-                          <th>Quantity</th>
-                          <th>Cost Price</th>
-                          <th>Total</th>
+                          <th class="border border-gray-300 px-4 py-2 bg-black text-white text-left">Brand Name</th>
+                          <th class="border border-gray-300 px-4 py-2 bg-black text-white text-left">Product</th>
+                          <th class="border border-gray-300 px-4 py-2 bg-black text-white text-left">Quantity</th>
+                          <th class="border border-gray-300 px-4 py-2 bg-black text-white text-left">Cost Price</th>
+                          <th class="border border-gray-300 px-4 py-2 bg-black text-white text-left">Total</th>
                       </tr>
                   </thead>
                   <tbody>
                       ${items.map(item => `
                           <tr>
-                              <td>${item.brandName}</td>
-                              <td>${item.brandProduct}</td>
-                              <td>${item.quantity}</td>
-                              <td>₹${item.costPrice}</td>
-                              <td>₹${(item.quantity * item.costPrice).toFixed(2)}</td>
+                              <td class="border border-gray-300 px-4 py-2">${item.brandName}</td>
+                              <td class="border border-gray-300 px-4 py-2">${item.brandProduct}</td>
+                              <td class="border border-gray-300 px-4 py-2">${item.quantity}</td>
+                              <td class="border border-gray-300 px-4 py-2">₹${item.costPrice}</td>
+                              <td class="border border-gray-300 px-4 py-2">₹${(item.quantity * item.costPrice).toFixed(2)}</td>
                           </tr>`).join('')}
                   </tbody>
               </table>
-              <div class="total">
-                  <p>Subtotal: ₹${subtotal.toFixed(2)}</p>
-                  <p>Tax (18%): ₹${tax.toFixed(2)}</p>
-                  <p><strong>Total: ₹${total.toFixed(2)}</strong></p>
+
+              <div class="total text-right mt-4 space-y-1">
+                  <p><span class="font-semibold">Subtotal:</span> ₹${subtotal.toFixed(2)}</p>
+                  <p><span class="font-semibold">Tax (18%):</span> ₹${tax.toFixed(2)}</p>
+                  <p><span class="font-semibold text-lg">Total:</span> ₹${total.toFixed(2)}</p>
               </div>
           </div>
 
           <!-- Print Button -->
-          <div class="print-button" style="text-align: center; margin-top: 20px;">
-              <button onclick="printPDF()" style="padding: 10px 20px; font-size: 16px;">Print / Save as PDF</button>
+          <div class="print-button text-center mt-6">
+              <button onclick="printPDF()" class="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600">
+                  Print / Save as PDF
+              </button>
           </div>
 
           <script>
@@ -260,6 +250,31 @@ const Inventory = () => {
                   window.print(); // Opens the print dialog for print or save as PDF
               }
           </script>
+
+          <style>
+              @media print {
+                  .print-button {
+                      display: none; /* Hide print button on print */
+                  }
+
+                  body {
+                      -webkit-print-color-adjust: exact; /* Ensure colors are printed accurately */
+                      margin: 0;
+                      padding: 0;
+                  }
+
+                  .po-container {
+                      width: 100%; /* Utilize full width for print */
+                      border: none;
+                  }
+
+                  /* Set page orientation to portrait */
+                  @page {
+                      size: A4 portrait; /* Set A4 paper size in portrait orientation */
+                      margin: 20mm;
+                  }
+              }
+          </style>
       </body>
       </html>
     `);

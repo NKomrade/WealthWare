@@ -201,7 +201,7 @@ function SalesReport() {
 
             <table className="min-w-full bg-white border border-gray-300">
                 <thead>
-                    <tr className="bg-gray-200">
+                    <tr className="bg-black text-white">
                         <th className="py-2 px-4 border">Invoice ID</th>
                         <th className="py-2 px-4 border">Customer Name</th>
                         <th className="py-2 px-4 border">SKU ID</th>
