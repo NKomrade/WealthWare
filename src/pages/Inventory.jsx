@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { collection, addDoc, getDocs, deleteDoc } from 'firebase/firestore';
+import { collection, addDoc, getDocs, deleteDoc, doc, updateDoc, query, where } from 'firebase/firestore';
 import { getAuth, onAuthStateChanged } from 'firebase/auth';
 import { db } from '../firebase';
 
@@ -8,9 +8,12 @@ const Inventory = () => {
   const [showPOModal, setShowPOModal] = useState(false);
   const [products, setProducts] = useState([]);
   const [purchaseOrders, setPurchaseOrders] = useState([]);
-  const [productSearchQuery, setProductSearchQuery] = useState(''); // Search query for inventory
+  const [isExistingSKU, setIsExistingSKU] = useState(false);
+  const [productSearchQuery, setProductSearchQuery] = useState('');
+  const [filteredInv, setFilteredInv] = useState([]);
   const [poSearchQuery, setPoSearchQuery] = useState('');
-
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 5;
   const [productData, setProductData] = useState({
     skuId: '',
     name: '',
@@ -20,6 +23,7 @@ const Inventory = () => {
     description: '',
     purchaseDate: '',
   });
+  const [editProductId, setEditProductId] = useState(null); // Track if editing a product
 
   const [poData, setPoData] = useState({
     poId: `PO-${Math.floor(1000 + Math.random() * 9000)}`,
@@ -31,6 +35,34 @@ const Inventory = () => {
 
   const auth = getAuth();
   const [user, setUser] = useState(null);
+  const totalPages = Math.ceil(products.length / itemsPerPage);
+  // Paginate the filtered products
+  const paginatedProducts = filteredInv.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
+
+  const handleNextPage = () => {
+    if (currentPage < totalPages) {
+      setCurrentPage(currentPage + 1);
+    }
+  };
+
+  const handlePreviousPage = () => {
+    if (currentPage > 1) {
+      setCurrentPage(currentPage - 1);
+    }
+  };
+
+  const handleSearch = (query) => {
+    const filtered = products.filter((product) =>
+      product.skuId.toLowerCase().includes(query.toLowerCase()) ||
+      product.companyName.toLowerCase().includes(query.toLowerCase()) ||
+      product.name.toLowerCase().includes(query.toLowerCase())
+    );
+    setFilteredInv(filtered);
+    setCurrentPage(1); 
+  };
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
@@ -52,6 +84,7 @@ const Inventory = () => {
       const querySnapshot = await getDocs(productsRef);
       const userProducts = querySnapshot.docs.map((doc) => doc.data());
       setProducts(userProducts);
+      setFilteredInv(userProducts);
     } catch (error) {
       console.error('Error fetching products: ', error);
     }
@@ -107,14 +140,39 @@ const Inventory = () => {
     setPoData({ ...poData, items });
   };
 
+  useEffect(() => {
+    if (productData.companyName && productData.name) {
+      const existingProduct = products.find(
+        (product) =>
+          product.companyName.toLowerCase() === productData.companyName.toLowerCase() &&
+          product.name.toLowerCase() === productData.name.toLowerCase()
+      );
+
+      if (existingProduct) {
+        setProductData((prevData) => ({ ...prevData, skuId: existingProduct.skuId }));
+        setIsExistingSKU(true);
+      } else {
+        setProductData((prevData) => ({ ...prevData, skuId: `SKU-${Math.floor(1000 + Math.random() * 9000)}` }));
+        setIsExistingSKU(false);
+      }
+    }
+  }, [productData.companyName, productData.name, products]);
+
   const openModal = () => {
     const todayDate = new Date().toISOString().split('T')[0];
     setProductData({
-      ...productData,
+      skuId: '', // Reset SKU ID to be empty each time the modal opens
+      name: '',
+      companyName: '',
+      price: '',
+      quantity: '',
+      description: '',
       purchaseDate: todayDate,
     });
+    setIsExistingSKU(false);
+    setEditProductId(null);
     setShowModal(true);
-  };
+  };  
 
   const closeModal = () => setShowModal(false);
   const openPOModal = () => setShowPOModal(true);
@@ -286,9 +344,25 @@ const Inventory = () => {
       console.error('No user logged in.');
       return;
     }
+  
     try {
-      await addDoc(collection(db, `users/${user.uid}/products`), productData);
-      setProducts([...products, productData]);
+      if (editProductId) {
+        // If `editProductId` is set, update the existing product
+        const productRef = doc(db, `users/${user.uid}/products`, editProductId);
+        await updateDoc(productRef, productData);
+  
+        // Update the local state with edited product data
+        setProducts(products.map((product) => (product.id === editProductId ? { ...productData, id: editProductId } : product)));
+  
+        // Reset editProductId after updating
+        setEditProductId(null);
+      } else {
+        // Add a new product if `editProductId` is not set
+        const docRef = await addDoc(collection(db, `users/${user.uid}/products`), productData);
+        setProducts([...products, { ...productData, id: docRef.id }]);
+      }
+  
+      // Reset form and close modal
       setProductData({
         skuId: '',
         name: '',
@@ -300,9 +374,49 @@ const Inventory = () => {
       });
       setShowModal(false);
     } catch (error) {
-      console.error('Error adding product: ', error);
+      console.error('Error adding or updating product: ', error);
     }
+  };  
+
+  const handleEdit = (product) => {
+    setProductData(product);
+    setEditProductId(product.id); // Set the product ID to edit
+    setIsExistingSKU(true); // SKU ID is pre-existing and should appear in green
+    setShowModal(true);
   };
+
+  const handleProductDelete = async (skuId) => {
+    if (!user) {
+      console.error('No user logged in.');
+      return;
+    }
+  
+    console.log('Deleting product with SKU ID:', skuId); // Log the skuId for debugging
+  
+    if (!skuId) {
+      console.error('SKU ID is undefined.');
+      return;
+    }
+  
+    try {
+      const productsRef = collection(db, `users/${user.uid}/products`);
+      const q = query(productsRef, where("skuId", "==", skuId));
+      const querySnapshot = await getDocs(q);
+  
+      if (!querySnapshot.empty) {
+        const docRef = querySnapshot.docs[0].ref;
+        await deleteDoc(docRef);
+  
+        // Update local state to remove the deleted product
+        setProducts(products.filter((product) => product.skuId !== skuId));
+        alert('Product deleted successfully!');
+      } else {
+        console.error('No product found with the specified SKU ID.');
+      }
+    } catch (error) {
+      console.error('Error deleting product: ', error);
+    }
+  };  
 
   return (
     <div className="p-8">
@@ -323,8 +437,7 @@ const Inventory = () => {
             type="text"
             placeholder="Search Inventory..."
             className="border px-2 py-1 rounded"
-            value={productSearchQuery}
-            onChange={(e) => setProductSearchQuery(e.target.value)}
+            onChange={(e) => handleSearch(e.target.value)}
           />
           <button className="bg-blue-500 text-white px-4 py-1 rounded">Search</button>
         </div>
@@ -339,11 +452,12 @@ const Inventory = () => {
             <th className="border border-gray-300 p-2">Quantity</th>
             <th className="border border-gray-300 p-2">Description</th>
             <th className="border border-gray-300 p-2">Purchase Date</th>
+            <th className="border border-gray-300 p-2">Actions</th>
           </tr>
         </thead>
         <tbody className="bg-gray-100">
-          {filteredProducts.length > 0 ? (
-            filteredProducts.map((product, index) => (
+          {paginatedProducts.length > 0 ? (
+            paginatedProducts.map((product, index) => (
               <tr key={index}>
                 <td className="border border-gray-300 p-2">{product.skuId}</td>
                 <td className="border border-gray-300 p-2">{product.companyName}</td>
@@ -352,17 +466,52 @@ const Inventory = () => {
                 <td className="border border-gray-300 p-2">{product.quantity}</td>
                 <td className="border border-gray-300 p-2">{product.description}</td>
                 <td className="border border-gray-300 p-2">{product.purchaseDate}</td>
+                <td className="border border-gray-300 p-2">
+                  <div className="flex justify-center space-x-2">
+                    <button
+                      onClick={() => handleEdit(product)}
+                      className="bg-blue-500 text-white px-2 py-1 rounded mr-4"
+                    >
+                      Edit
+                    </button>
+                    <button
+                      onClick={() => handleProductDelete(product.skuId)}
+                      className="bg-red-500 text-white px-2 py-1 rounded"
+                    >
+                      Delete
+                    </button>
+                  </div>
+                </td>
               </tr>
             ))
           ) : (
             <tr>
-              <td colSpan="7" className="text-center p-2">
+              <td colSpan="8" className="text-center p-2">
                 No products available
               </td>
             </tr>
           )}
         </tbody>
       </table>
+      <div className="flex justify-center items-center mt-4 space-x-4">
+        <button
+          onClick={handlePreviousPage}
+          disabled={currentPage === 1}
+          className="bg-gray-300 px-4 py-2 rounded disabled:opacity-50"
+        >
+          {"<"}
+        </button>
+        <span className="text-lg">
+          {currentPage} / {totalPages}
+        </span>
+        <button
+          onClick={handleNextPage}
+          disabled={currentPage === totalPages}
+          className="bg-gray-300 px-4 py-2 rounded disabled:opacity-50"
+        >
+          {">"}
+        </button>
+      </div>
 
       {/* Purchase Order Section */}
       <div className="mb-4 flex justify-between items-center pt-10">
@@ -427,53 +576,64 @@ const Inventory = () => {
       {showModal && (
         <div className="fixed top-0 left-0 w-full h-full flex items-center justify-center bg-gray-900 bg-opacity-50">
           <div className="bg-white p-6 rounded-lg w-1/3">
-            <h2 className="text-2xl mb-4">Add Inventory</h2>
+            <h2 className="text-2xl mb-4">{editProductId ? 'Edit Inventory' : 'Add Inventory'}</h2>
             <form onSubmit={handleSubmit} className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block mb-2">SKU ID</label>
-                <input
-                  name="skuId"
-                  value={productData.skuId}
-                  placeholder="Enter SKU ID"
-                  onChange={handleChange}
-                  required
-                  className="border w-full p-2"
-                />
-              </div>
-              <div>
+              {/* Purchase Date */}
+              <div className="col-span-2">
                 <label className="block mb-2">Purchase Date</label>
                 <input
                   type="date"
                   name="purchaseDate"
                   value={productData.purchaseDate}
-                  readOnly
+                  onChange={handleChange}
                   className="border w-full p-2 bg-gray-100"
                 />
               </div>
+
+              {/* Brand Name */}
               <div>
-                <label className="block mb-2">Company Name</label>
+                <label className="block mb-2">Brand Name</label>
                 <input
                   name="companyName"
-                  placeholder="Enter company name"
+                  value={productData.companyName}
+                  placeholder="Enter brand name"
                   onChange={handleChange}
                   required
                   className="border w-full p-2"
                 />
               </div>
+
+              {/* Product Name */}
               <div>
                 <label className="block mb-2">Product Name</label>
                 <input
                   name="name"
+                  value={productData.name}
                   placeholder="Enter product name"
                   onChange={handleChange}
                   required
                   className="border w-full p-2"
                 />
               </div>
+
+              {/* SKU ID (read-only for editing) */}
+              <div className="col-span-2">
+                <label className="block mb-2">SKU ID</label>
+                <input
+                  name="skuId"
+                  value={productData.skuId}
+                  placeholder="SKU ID will auto-fill if product exists"
+                  readOnly
+                  className={`border w-full p-2 ${isExistingSKU ? 'text-green-500' : 'text-black'}`}
+                />
+              </div>
+
+              {/* Price */}
               <div>
                 <label className="block mb-2">Price</label>
                 <input
                   name="price"
+                  value={productData.price}
                   placeholder="Enter price"
                   type="number"
                   onChange={handleChange}
@@ -481,10 +641,13 @@ const Inventory = () => {
                   className="border w-full p-2"
                 />
               </div>
+
+              {/* Quantity */}
               <div>
                 <label className="block mb-2">Quantity</label>
                 <input
                   name="quantity"
+                  value={productData.quantity}
                   placeholder="Enter quantity"
                   type="number"
                   onChange={handleChange}
@@ -492,16 +655,21 @@ const Inventory = () => {
                   className="border w-full p-2"
                 />
               </div>
+
+              {/* Description */}
               <div className="col-span-2">
                 <label className="block mb-2">Description</label>
                 <textarea
                   name="description"
+                  value={productData.description}
                   placeholder="Enter product description"
                   onChange={handleChange}
                   required
                   className="border w-full p-2"
                 />
               </div>
+
+              {/* Form Buttons */}
               <div className="col-span-2 flex justify-end">
                 <button
                   type="button"
@@ -514,7 +682,7 @@ const Inventory = () => {
                   type="submit"
                   className="bg-blue-500 text-white px-4 py-2 rounded"
                 >
-                  Save
+                  {editProductId ? 'Update' : 'Save'}
                 </button>
               </div>
             </form>
@@ -522,7 +690,7 @@ const Inventory = () => {
         </div>
       )}
 
-{showPOModal && (
+      {showPOModal && (
         <div className="fixed top-0 left-0 w-full h-full flex items-center justify-center bg-gray-900 bg-opacity-50">
           <div className="bg-white p-6 rounded-lg w-1/2">
             <h2 className="text-2xl mb-4">Generate Purchase Order</h2>
