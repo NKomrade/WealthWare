@@ -6,6 +6,7 @@ import { getAuth } from "firebase/auth";
 const Invoices = () => {
   const [products, setProducts] = useState([]);
   const [invoices, setInvoices] = useState([]);
+  const [searchQuery, setSearchQuery] = useState(""); // Search query state
   const [selectedItems, setSelectedItems] = useState([{ product: null, quantity: 1 }]);
   const [customerName, setCustomerName] = useState("");
   const [customerAddress, setCustomerAddress] = useState("");
@@ -17,6 +18,12 @@ const Invoices = () => {
 
   const auth = getAuth();
   const user = auth.currentUser;
+
+  // Filter invoices based on search query
+  const filteredInvoices = invoices.filter((invoice) =>
+    invoice.invoiceID.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    invoice.customerName.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   // Fetch Products and Invoices from Firestore
   useEffect(() => {
@@ -231,16 +238,15 @@ const Invoices = () => {
   
       alert("Invoice saved successfully!");
   
-      // Generate the invoice PDF in a new tab
-      const printWindow = window.open("", "_blank");
-      printWindow.document.write(generatePDF(invoiceData));
-      printWindow.document.close();
+      // Open and display the PDF content directly in a new tab
+      generatePDF(invoiceData);
     } catch (error) {
       console.error("Error processing invoice:", error);
       alert(`Error: ${error.message}`);
     }
   };
   
+  // Updated generatePDF function
   const generatePDF = (invoice) => {
     const { invoiceID, customerName, customerAddress, items, subtotal, tax, total } = invoice;
   
@@ -288,7 +294,7 @@ const Invoices = () => {
                   .join("")}
               </tbody>
             </table>
-
+  
             <div class="total text-right mt-4 space-y-1">
               <p><span class="font-semibold">Subtotal:</span> ₹${subtotal.toFixed(2)}</p>
               <p><span class="font-semibold">Tax (18%):</span> ₹${tax.toFixed(2)}</p>
@@ -296,49 +302,19 @@ const Invoices = () => {
             </div>
           </div>
           <div class="print-button text-center mt-6">
-            <button onclick="printPDF()" class="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600">
+            <button onclick="window.print()" class="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600">
               Print / Save as PDF
             </button>
           </div>
-
-          <script>
-            function printPDF() {
-              window.print(); // Opens the print dialog for printing or saving as PDF
-            }
-          </script>
-          
-          <style>
-            @media print {
-              .print-button {
-                display: none; /* Hide print button when printing */
-              }
-
-              body {
-                -webkit-print-color-adjust: exact; /* Ensure colors are printed accurately */
-                margin: 0;
-                padding: 0;
-              }
-
-              .invoice-container {
-                width: 100%; /* Utilize full width for print */
-                border: none;
-              }
-
-              /* Set page orientation to portrait */
-              @page {
-                size: A4 portrait; /* Set A4 paper size in portrait orientation */
-                margin: 1cm;
-              }
-            }
-          </style>
         </body>
       </html>
     `;
   
+    // Open a new window and write the PDF content to it
     const newWindow = window.open("", "_blank");
     newWindow.document.write(htmlContent);
     newWindow.document.close();
-  };       
+  };         
 
   return (
     <div className="flex flex-row space-x-4 p-6 bg-white shadow-lg rounded-lg">
@@ -467,7 +443,18 @@ const Invoices = () => {
   
       {/* Right Section - Invoices List */}
       <div className="w-1/2 p-4 bg-white shadow-md rounded-md">
-          <h3 className="text-xl font-semibold mb-4">Invoices List</h3>
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="text-xl font-semibold">Invoices List</h3>
+
+            {/* Search Box */}
+            <input
+              type="text"
+              placeholder="Search by Invoice ID or Customer Name"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="border px-2 py-1 rounded w-1/2"
+            />
+          </div>
           <table className="min-w-full border border-gray-300 table-fixed">
             <thead>
               <tr>
@@ -479,28 +466,36 @@ const Invoices = () => {
               </tr>
             </thead>
             <tbody>
-              {invoices.map((invoice) => (
-                <tr key={invoice.id} className="text-sm">
-                  <td className="px-2 py-1 border-b text-center truncate">{invoice.invoiceID}</td>
-                  <td className="px-2 py-1 border-b text-center truncate">{invoice.date}</td>
-                  <td className="px-2 py-1 border-b text-center truncate">{invoice.customerName}</td>
-                  <td className="px-2 py-1 border-b text-center truncate">₹{invoice.total.toFixed(2)}</td>
-                  <td className="px-2 py-1 border-b text-center">
-                    <button
-                      onClick={() => handleViewInvoice(invoice.invoiceID)}
-                      className="bg-blue-500 text-white px-2 py-1 rounded-md text-xs mr-2"
-                    >
-                      View
-                    </button>
-                    <button
-                      onClick={() => handleDeleteInvoice(invoice.id)}
-                      className="bg-red-500 text-white px-2 py-1 rounded-md text-xs -ml-1"
-                    >
-                      Delete
-                    </button>
-                  </td>
-                </tr>
-              ))}
+              {filteredInvoices.length > 0 ? (
+                filteredInvoices.map((invoice) => (
+                  <tr key={invoice.id} className="text-sm">
+                    <td className="px-2 py-1 border-b text-center truncate">{invoice.invoiceID}</td>
+                    <td className="px-2 py-1 border-b text-center truncate">{invoice.date}</td>
+                    <td className="px-2 py-1 border-b text-center truncate">{invoice.customerName}</td>
+                    <td className="px-2 py-1 border-b text-center truncate">₹{invoice.total.toFixed(2)}</td>
+                    <td className="px-2 py-1 border-b text-center">
+                      <button
+                        onClick={() => handleViewInvoice(invoice.invoiceID)}
+                        className="bg-blue-500 text-white px-2 py-1 rounded-md text-xs mr-2"
+                      >
+                        View
+                      </button>
+                      <button
+                        onClick={() => handleDeleteInvoice(invoice.id)}
+                        className="bg-red-500 text-white px-2 py-1 rounded-md text-xs -ml-1"
+                      >
+                        Delete
+                      </button>
+                    </td>
+                  </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan="5" className="text-center py-4 text-gray-500">
+                      No data found
+                    </td>
+                  </tr>
+                )}
             </tbody>
           </table>
       </div>

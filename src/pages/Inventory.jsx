@@ -9,10 +9,10 @@ const Inventory = () => {
   const [products, setProducts] = useState([]);
   const [purchaseOrders, setPurchaseOrders] = useState([]);
   const [isExistingSKU, setIsExistingSKU] = useState(false);
-  const [productSearchQuery, setProductSearchQuery] = useState('');
   const [filteredInv, setFilteredInv] = useState([]);
   const [poSearchQuery, setPoSearchQuery] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
+  const [currentPOPage, setCurrentPOPage] = useState(1);
   const itemsPerPage = 5;
   const [productData, setProductData] = useState({
     skuId: '',
@@ -36,6 +36,19 @@ const Inventory = () => {
   const auth = getAuth();
   const [user, setUser] = useState(null);
   const totalPages = Math.ceil(products.length / itemsPerPage);
+
+  const handlePONextPage = () => {
+    if (currentPOPage < totalPOTotalPages) {
+      setCurrentPOPage(currentPOPage + 1);
+    }
+  };
+  
+  const handlePOPreviousPage = () => {
+    if (currentPOPage > 1) {
+      setCurrentPOPage(currentPOPage - 1);
+    }
+  };
+
   // Paginate the filtered products
   const paginatedProducts = filteredInv.slice(
     (currentPage - 1) * itemsPerPage,
@@ -101,18 +114,18 @@ const Inventory = () => {
     }
   };
 
-  // Filter Inventory based on SKU ID, Company Name, or Product Name
-  const filteredProducts = products.filter((product) =>
-    product.skuId.toLowerCase().includes(productSearchQuery.toLowerCase()) ||
-    product.companyName.toLowerCase().includes(productSearchQuery.toLowerCase()) ||
-    product.name.toLowerCase().includes(productSearchQuery.toLowerCase())
-  );
-
   // Filter Purchase Orders based on PO ID, Company Name, or Supplier Address
   const filteredPurchaseOrders = purchaseOrders.filter((po) =>
     po.poId.toLowerCase().includes(poSearchQuery.toLowerCase()) ||
     po.companyName.toLowerCase().includes(poSearchQuery.toLowerCase()) ||
     po.supplierAddress.toLowerCase().includes(poSearchQuery.toLowerCase())
+  );
+
+  const totalPOTotalPages = Math.ceil(filteredPurchaseOrders.length / itemsPerPage);
+
+  const paginatedPurchaseOrders = filteredPurchaseOrders.slice(
+    (currentPOPage - 1) * itemsPerPage,
+    currentPOPage * itemsPerPage
   );
 
   const handleChange = (e) => {
@@ -493,25 +506,27 @@ const Inventory = () => {
           )}
         </tbody>
       </table>
-      <div className="flex justify-center items-center mt-4 space-x-4">
-        <button
-          onClick={handlePreviousPage}
-          disabled={currentPage === 1}
-          className="bg-gray-300 px-4 py-2 rounded disabled:opacity-50"
-        >
-          {"<"}
-        </button>
-        <span className="text-lg">
-          {currentPage} / {totalPages}
-        </span>
-        <button
-          onClick={handleNextPage}
-          disabled={currentPage === totalPages}
-          className="bg-gray-300 px-4 py-2 rounded disabled:opacity-50"
-        >
-          {">"}
-        </button>
-      </div>
+      {filteredInv.length >= 5 && (
+        <div className="flex justify-center items-center mt-4 space-x-4">
+          <button
+            onClick={handlePreviousPage}
+            disabled={currentPage === 1}
+            className="bg-gray-300 px-4 py-2 rounded disabled:opacity-50"
+          >
+            {"<"}
+          </button>
+          <span className="text-lg">
+            {currentPage} / {totalPages}
+          </span>
+          <button
+            onClick={handleNextPage}
+            disabled={currentPage === totalPages}
+            className="bg-gray-300 px-4 py-2 rounded disabled:opacity-50"
+          >
+            {">"}
+          </button>
+        </div>
+      )}
 
       {/* Purchase Order Section */}
       <div className="mb-4 flex justify-between items-center pt-10">
@@ -538,8 +553,8 @@ const Inventory = () => {
           </tr>
         </thead>
         <tbody className="bg-gray-100">
-          {filteredPurchaseOrders.length > 0 ? (
-            filteredPurchaseOrders.map((po, index) => (
+          {paginatedPurchaseOrders.length > 0 ? (
+            paginatedPurchaseOrders.map((po, index) => (
               <tr key={index}>
                 <td className="border border-gray-300 p-2">{po.poId}</td>
                 <td className="border border-gray-300 p-2">{po.companyName}</td>
@@ -572,6 +587,29 @@ const Inventory = () => {
           )}
         </tbody>
       </table>
+
+      {/* Pagination controls for Purchase Orders */}
+      {filteredPurchaseOrders.length >= 5 && (
+        <div className="flex justify-center items-center mt-4 space-x-4">
+          <button
+            onClick={handlePOPreviousPage}
+            disabled={currentPOPage === 1}
+            className="bg-gray-300 px-4 py-2 rounded disabled:opacity-50"
+          >
+            {"<"}
+          </button>
+          <span className="text-lg">
+            {currentPOPage} / {totalPOTotalPages}
+          </span>
+          <button
+            onClick={handlePONextPage}
+            disabled={currentPOPage === totalPOTotalPages}
+            className="bg-gray-300 px-4 py-2 rounded disabled:opacity-50"
+          >
+            {">"}
+          </button>
+        </div>
+        )}
 
       {showModal && (
         <div className="fixed top-0 left-0 w-full h-full flex items-center justify-center bg-gray-900 bg-opacity-50">

@@ -107,7 +107,7 @@ function Profile({ ownerName }) {
     <div className="flex justify-center items-center min-h-screen bg-gray-100 overflow-hidden">
       <div className="w-full max-w-6xl bg-gray-100 shadow-md rounded-lg p-8">
         {/* Profile Header */}
-        <div className="relative w-full h-40 bg-gradient-to-r from-blue-400 to-yellow-200 rounded-t-lg flex items-center p-4">
+        <div className="relative w-full h-40 bg-gradient-to-r from-sky-400 to-white rounded-t-lg flex items-center p-4">
           <div className="flex items-center">
             {profileData.profileImage ? (
               <img
