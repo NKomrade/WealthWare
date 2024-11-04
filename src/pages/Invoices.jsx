@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { db } from "../firebase"; // Import Firebase storage
-import { collection, getDocs, addDoc, deleteDoc, doc, query, where, updateDoc } from "firebase/firestore";
+import { collection, getDocs, deleteDoc, doc, query, where, updateDoc } from "firebase/firestore";
 import { getAuth } from "firebase/auth";
 
 const Invoices = () => {
@@ -223,12 +223,6 @@ const Invoices = () => {
     };
   
     try {
-      // Save the invoice data to Firestore
-      const invoiceRef = await addDoc(
-        collection(db, `users/${user.uid}/invoices`),
-        invoiceData
-      );
-  
       // Update product quantities in Firestore
       for (const [index, item] of selectedItems.entries()) {
         if (item.product) {
