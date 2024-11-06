@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { collection, getDocs, query, where, updateDoc, doc } from 'firebase/firestore';
+import { collection, getDocs, query, where } from 'firebase/firestore';
+import { PieChart, Pie, Cell, Tooltip, Legend, BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts';
 import { db } from '../firebase';
 import { getAuth } from 'firebase/auth';
 
@@ -13,6 +14,7 @@ function SalesReport() {
     const [fromDate, setFromDate] = useState(formatDate(oneMonthBefore));
     const [toDate, setToDate] = useState(formatDate(today));
     const [salesData, setSalesData] = useState([]);
+    const [monthlySalesData, setMonthlySalesData] = useState([]);
     const [products, setProducts] = useState([]);
     const [paymentType, setPaymentType] = useState('All Payments');
     const [searchTerm, setSearchTerm] = useState('');
@@ -39,35 +41,36 @@ function SalesReport() {
         }
     }, [user]);
 
-    // Fetch invoices from Firestore
+    // Fetch sales data from Firestore
     const fetchSalesData = useCallback(async () => {
         if (user) {
             try {
-                console.log('Fetching sales data...');
-                let q = collection(db, `users/${user.uid}/invoices`);
+                let salesQuery = collection(db, `users/${user.uid}/invoices`);
 
                 if (fromDate && toDate) {
-                    console.log('From:', fromDate, 'To:', toDate);
-                    q = query(q, where('date', '>=', fromDate), where('date', '<=', toDate));
+                    salesQuery = query(salesQuery, where('date', '>=', fromDate), where('date', '<=', toDate));
                 }
 
-                const querySnapshot = await getDocs(q);
-
-                if (querySnapshot.empty) {
-                    console.log('No matching documents found.');
-                    setSalesData([]);
-                    return;
-                }
-
+                const querySnapshot = await getDocs(salesQuery);
                 const data = querySnapshot.docs.map((doc) => ({
                     id: doc.id,
                     ...doc.data(),
                 }));
 
-                console.log('Fetched Sales Data:', data);
                 setSalesData(data);
+
+                // Group data by month for bar chart
+                const monthlyData = data.reduce((acc, sale) => {
+                    const month = new Date(sale.date).toLocaleString('default', { month: 'short' });
+                    if (!acc[month]) acc[month] = 0;
+                    acc[month] += sale.total || 0;
+                    return acc;
+                }, {});
+
+                setMonthlySalesData(Object.entries(monthlyData).map(([month, sales]) => ({ month, sales })));
+
             } catch (error) {
-                console.error('Error fetching invoices:', error);
+                console.error('Error fetching sales data:', error);
             } finally {
                 setLoading(false);
             }
@@ -111,143 +114,170 @@ function SalesReport() {
         return matchesPaymentType && searchInvoices(sale);
     });
 
-    const toggleStatus = async (invoiceId) => {
-        const invoiceRef = doc(db, `users/${user.uid}/invoices`, invoiceId);
-        const invoice = salesData.find((sale) => sale.id === invoiceId);
-        const newStatus = invoice.status === 'Pending' ? 'Delivered' : 'Pending';
+    const paymentMethodDistribution = salesData.reduce(
+        (acc, sale) => {
+            acc[sale.paymentMethod] = (acc[sale.paymentMethod] || 0) + 1;
+            return acc;
+        },
+        { Cash: 0, Card: 0, UPI: 0 }
+    );
 
-        try {
-            await updateDoc(invoiceRef, { status: newStatus });
-            setSalesData((prevSalesData) =>
-                prevSalesData.map((sale) =>
-                    sale.id === invoiceId ? { ...sale, status: newStatus } : sale
-                )
-            );
-            console.log(`Updated status of Invoice ${invoiceId} to ${newStatus}`);
-        } catch (error) {
-            console.error('Error updating status:', error);
-        }
-    };
+    const pieData = [
+        { name: 'Cash', value: paymentMethodDistribution.Cash },
+        { name: 'Card', value: paymentMethodDistribution.Card },
+        { name: 'UPI', value: paymentMethodDistribution.UPI },
+    ];
+
+    const colors = ['#4CAF50', '#FF9800', '#2196F3'];
 
     if (loading) {
         return <div className="text-center p-6">Loading...</div>;
     }
 
     return (
-        <div className="p-6 bg-gray-100">
-            <h1 className="text-2xl font-bold mb-4 text-center">
-                Sales Report from{' '}
-                <span className="text-blue-600">
-                    {fromDate.split('-').reverse().join('/')}
-                </span>{' '}
-                to{' '}
-                <span className="text-blue-600">
-                    {toDate.split('-').reverse().join('/')}
-                </span>
-            </h1>
+        <div className="h-screen overflow-auto p-2 bg-gray-100 flex flex-col md:flex-row md:space-x-6 space-y-4 md:space-y-0">
+            <div className="flex-1 bg-white shadow-md rounded-md p-4 space-y-6">
+                    <h1 className="text-2xl font-bold mb-4 text-center">
+                        Sales Report from{' '}
+                        <span className="text-blue-600">
+                            {fromDate.split('-').reverse().join('/')}
+                        </span>{' '}
+                        to{' '}
+                        <span className="text-blue-600">
+                            {toDate.split('-').reverse().join('/')}
+                        </span>
+                    </h1>
 
-            <div className="flex justify-center mb-4">
-                <div className="flex items-center">
-                    <label className="mr-2">From</label>
-                    <input
-                        type="date"
-                        value={fromDate}
-                        onChange={(e) => setFromDate(e.target.value)}
-                        className="border rounded-lg p-2"
-                    />
-                </div>
+                    <div className="flex flex-col sm:flex-row justify-center mb-4 space-y-4 sm:space-y-0 sm:space-x-4">
+                        <div className="flex items-center">
+                            <label className="mr-2">From</label>
+                            <input
+                                type="date"
+                                value={fromDate}
+                                onChange={(e) => setFromDate(e.target.value)}
+                                className="border rounded-lg p-2"
+                            />
+                        </div>
 
-                <div className="flex items-center mx-4">
-                    <label className="mr-2">To</label>
-                    <input
-                        type="date"
-                        value={toDate}
-                        onChange={(e) => setToDate(e.target.value)}
-                        className="border rounded-lg p-2"
-                    />
-                </div>
+                        <div className="flex items-center">
+                            <label className="mr-2">To</label>
+                            <input
+                                type="date"
+                                value={toDate}
+                                onChange={(e) => setToDate(e.target.value)}
+                                className="border rounded-lg p-2"
+                            />
+                        </div>
 
-                <div className="flex items-center mx-4">
-                    <label className="mr-2">Payment Type</label>
-                    <select
-                        value={paymentType}
-                        onChange={(e) => setPaymentType(e.target.value)}
-                        className="border rounded-lg p-2"
-                    >
-                        <option>All Payments</option>
-                        <option>Cash</option>
-                        <option>Card</option>
-                        <option>UPI</option>
-                    </select>
-                </div>
+                        <div className="flex items-center">
+                            <label className="mr-2">Payments</label>
+                            <select
+                                value={paymentType}
+                                onChange={(e) => setPaymentType(e.target.value)}
+                                className="border rounded-lg p-2"
+                            >
+                                <option>All Payments</option>
+                                <option>Cash</option>
+                                <option>Card</option>
+                                <option>UPI</option>
+                            </select>
+                        </div>
 
-                <div className="flex items-center mx-4">
-                    <input
-                        type="text"
-                        placeholder="Search by Invoice ID, Product ID, or Customer Name"
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        className="border rounded-lg p-2"
-                    />
-                </div>
+                        <div className="flex items-center">
+                            <input
+                                type="text"
+                                placeholder="Search..."
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                                className="border rounded-lg-4 p-2"
+                            />
+                        </div>
+                    </div>
 
-                <button
-                    onClick={fetchSalesData}
-                    className="bg-blue-600 text-white rounded-lg px-4 py-2"
-                >
-                    Search
-                </button>
-            </div>
+                    <table className="min-w-full bg-white border border-gray-300">
+                        <thead>
+                            <tr className="bg-black text-white">
+                                <th className="py-2 px-4 border">Invoice ID</th>
+                                <th className="py-2 px-4 border">SKU ID</th>
+                                <th className="py-2 px-4 border">Amount</th>
+                                <th className="py-2 px-4 border">Payment Method</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {filteredSalesData.length > 0 ? (
+                                filteredSalesData.map((invoice) => {
+                                    // Collect all SKU IDs from the items in the invoice
+                                    const productDetails = invoice.items
+                                        .map((item) => getProductName(item.product)) // Call only once
+                                        .join(', '); // Join product SKUs with a comma
 
-            <table className="min-w-full bg-white border border-gray-300">
-                <thead>
-                    <tr className="bg-black text-white">
-                        <th className="py-2 px-4 border">Invoice ID</th>
-                        <th className="py-2 px-4 border">Customer Name</th>
-                        <th className="py-2 px-4 border">SKU ID</th>
-                        <th className="py-2 px-4 border">Amount</th>
-                        <th className="py-2 px-4 border">Payment Method</th>
-                        <th className="py-2 px-4 border">Status</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {filteredSalesData.length > 0 ? (
-                        filteredSalesData.map((invoice) => {
-                            // Collect all SKU IDs from the items in the invoice
-                            const productDetails = invoice.items
-                                .map((item) => getProductName(item.product)) // Call only once
-                                .join(', '); // Join product SKUs with a comma
+                                    // Fetch the total amount directly from the invoice (if available)
+                                    const totalAmount = invoice.total || 
+                                        invoice.items.reduce(
+                                            (acc, item) => acc + item.unitPrice * item.quantity,
+                                            0
+                                        );
 
-                            // Fetch the total amount directly from the invoice (if available)
-                            const totalAmount = invoice.total || 
-                                invoice.items.reduce(
-                                    (acc, item) => acc + item.unitPrice * item.quantity,
-                                    0
-                                );
-
-                            return (
-                                <tr key={invoice.id}>
-                                    <td className="py-2 px-4 border">{invoice.invoiceID}</td>
-                                    <td className="py-2 px-4 border">{invoice.customerName}</td>
-                                    <td className="py-2 px-4 border">{productDetails}</td> {/* Corrected */}
-                                    <td className="py-2 px-4 border">{`₹${totalAmount}`}</td> {/* Total Amount */}
-                                    <td className="py-2 px-4 border">{invoice.paymentMethod}</td>
-                                    <td
-                                        className="py-2 px-4 border cursor-pointer"
-                                        onClick={() => toggleStatus(invoice.id)}
-                                    >
-                                        {invoice.status || 'Pending'}
-                                    </td>
+                                    return (
+                                        <tr key={invoice.id}>
+                                            <td className="py-2 px-4 border">{invoice.invoiceID}</td>
+                                            <td className="py-2 px-4 border">{productDetails}</td> {/* Corrected */}
+                                            <td className="py-2 px-4 border">{`₹${totalAmount}`}</td> {/* Total Amount */}
+                                            <td className="py-2 px-4 border">{invoice.paymentMethod}</td>
+                                        </tr>
+                                    );
+                                })
+                            ) : (
+                                <tr>
+                                    <td colSpan="4" className="text-center py-4">No data available.</td>
                                 </tr>
-                            );
-                        })
-                    ) : (
-                        <tr>
-                            <td colSpan="6" className="text-center py-4">No data available.</td>
-                        </tr>
-                    )}
-                </tbody>
-            </table>
+                            )}
+                        </tbody>
+                    </table>
+                </div>
+                {/* Monthly Sales Bar Chart */}
+                <div className="md:w-1/3 w-full space-y-6">
+                    <div className="bg-white shadow-md rounded-md p-4">
+                        <h2 className="text-xl font-semibold mb-4 text-center">Monthly Sales</h2>
+                        <BarChart
+                            width={window.innerWidth > 768 ? 400 : 300}
+                            height={300}
+                            data={monthlySalesData}
+                            className="mx-auto"
+                        >
+                            <CartesianGrid strokeDasharray="3 3" />
+                            <XAxis dataKey="month" />
+                            <YAxis />
+                            <Tooltip />
+                            <Legend />
+                            <Bar dataKey="sales" fill="#8884d8" />
+                        </BarChart>
+                    </div>
+                    <div className="bg-white shadow-md rounded-md p-4">
+                        <h2 className="text-xl font-semibold mb-4 text-center">Payment Method Distribution</h2>
+                        <PieChart
+                            width={window.innerWidth > 768 ? 400 : 300}
+                            height={window.innerWidth > 768 ? 400 : 300}
+                            className="mx-auto"
+                        >
+                            <Pie
+                                data={pieData}
+                                cx="50%"
+                                cy="50%"
+                                outerRadius={120}
+                                fill="#8884d8"
+                                dataKey="value"
+                                label={(entry) => `${entry.name}: ${entry.value}`}
+                            >
+                                {pieData.map((entry, index) => (
+                                    <Cell key={`cell-${index}`} fill={colors[index % colors.length]} />
+                                ))}
+                            </Pie>
+                            <Tooltip />
+                            <Legend />
+                        </PieChart>
+                    </div>
+                </div>
         </div>
     );
 }

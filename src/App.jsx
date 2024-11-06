@@ -34,18 +34,15 @@ function App() {
         setLoading(false); // Auth state determined
     }, []);
 
-    // Subscribe to Firebase authentication state changes
     useEffect(() => {
         const unsubscribe = onAuthStateChanged(auth, handleAuthStateChange);
         return () => unsubscribe(); // Cleanup subscription on unmount
     }, [handleAuthStateChange]);
 
-    // Display a loading screen while determining auth status
     if (loading) {
         return <div>Loading...</div>;
     }
 
-    // Render the app based on authentication state
     return (
         <ProfileProvider>
             <Router>

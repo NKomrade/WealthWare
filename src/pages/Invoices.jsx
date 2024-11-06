@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { db } from "../firebase"; // Import Firebase storage
-import { collection, getDocs, deleteDoc, doc, query, where, updateDoc } from "firebase/firestore";
+import { collection, getDocs, deleteDoc, addDoc, doc, query, where, updateDoc } from "firebase/firestore";
 import { getAuth } from "firebase/auth";
 
 const Invoices = () => {
@@ -200,7 +200,6 @@ const Invoices = () => {
   const handlePrint = async (e) => {
     e.preventDefault();
   
-    // Validate form fields
     if (!selectedItems.length || !customerName || !customerAddress || !paymentMethod) {
       alert("Please fill out all required fields.");
       return;
@@ -223,7 +222,15 @@ const Invoices = () => {
     };
   
     try {
-      // Update product quantities in Firestore
+      const invoicesRef = collection(db, `users/${user.uid}/invoices`);
+      const newInvoiceRef = await addDoc(invoicesRef, invoiceData);
+
+      // Add the newly created invoice to the local state
+      setInvoices((prevInvoices) => [
+        ...prevInvoices,
+        { id: newInvoiceRef.id, ...invoiceData },
+      ]);
+  
       for (const [index, item] of selectedItems.entries()) {
         if (item.product) {
           await updateProductQuantity(index, item.quantity);
@@ -231,8 +238,6 @@ const Invoices = () => {
       }
   
       alert("Invoice saved successfully!");
-  
-      // Open and display the PDF content directly in a new tab
       generatePDF(invoiceData);
     } catch (error) {
       console.error("Error processing invoice:", error);
