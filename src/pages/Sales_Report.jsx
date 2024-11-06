@@ -135,7 +135,7 @@ function SalesReport() {
     }
 
     return (
-        <div className="h-screen overflow-auto p-2 bg-gray-100 flex flex-col md:flex-row md:space-x-6 space-y-4 md:space-y-0">
+        <div className="p-6 bg-gray-100 flex space-x-6">
             <div className="flex-1 bg-white shadow-md rounded-md p-4 space-y-6">
                     <h1 className="text-2xl font-bold mb-4 text-center">
                         Sales Report from{' '}
@@ -148,7 +148,7 @@ function SalesReport() {
                         </span>
                     </h1>
 
-                    <div className="flex flex-col sm:flex-row justify-center mb-4 space-y-4 sm:space-y-0 sm:space-x-4">
+                    <div className="flex justify-center mb-4 space-x-4">
                         <div className="flex items-center">
                             <label className="mr-2">From</label>
                             <input
@@ -169,8 +169,8 @@ function SalesReport() {
                             />
                         </div>
 
-                        <div className="flex items-center">
-                            <label className="mr-2">Payments</label>
+                        <div className="flex items-center mx-4">
+                            <label className="mr-2">Payment</label>
                             <select
                                 value={paymentType}
                                 onChange={(e) => setPaymentType(e.target.value)}
@@ -229,22 +229,17 @@ function SalesReport() {
                                 })
                             ) : (
                                 <tr>
-                                    <td colSpan="4" className="text-center py-4">No data available.</td>
+                                    <td colSpan="6" className="text-center py-4">No data available.</td>
                                 </tr>
                             )}
                         </tbody>
                     </table>
                 </div>
                 {/* Monthly Sales Bar Chart */}
-                <div className="md:w-1/3 w-full space-y-6">
+                <div className="w-1/2 space-y-6">
                     <div className="bg-white shadow-md rounded-md p-4">
                         <h2 className="text-xl font-semibold mb-4 text-center">Monthly Sales</h2>
-                        <BarChart
-                            width={window.innerWidth > 768 ? 400 : 300}
-                            height={300}
-                            data={monthlySalesData}
-                            className="mx-auto"
-                        >
+                        <BarChart width={400} height={300} data={monthlySalesData}>
                             <CartesianGrid strokeDasharray="3 3" />
                             <XAxis dataKey="month" />
                             <YAxis />
@@ -255,11 +250,7 @@ function SalesReport() {
                     </div>
                     <div className="bg-white shadow-md rounded-md p-4">
                         <h2 className="text-xl font-semibold mb-4 text-center">Payment Method Distribution</h2>
-                        <PieChart
-                            width={window.innerWidth > 768 ? 400 : 300}
-                            height={window.innerWidth > 768 ? 400 : 300}
-                            className="mx-auto"
-                        >
+                        <PieChart width={400} height={400}>
                             <Pie
                                 data={pieData}
                                 cx="50%"
