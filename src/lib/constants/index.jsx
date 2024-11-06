@@ -1,5 +1,4 @@
 import {
-	HiOutlineShoppingCart,
 	HiOutlineDocumentText,
 	HiOutlineQuestionMarkCircle,
 	HiOutlineCog
@@ -17,7 +16,7 @@ export const DASHBOARD_SIDEBAR_LINKS = [
 	},
 	{
 		key: 'expensetracking',
-		label: 'Expense Tracking',
+		label: 'Expenses',
 		path: '/expensetracking',
 		icon: <FaShoppingCart />
 	},
