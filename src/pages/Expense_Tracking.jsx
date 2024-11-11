@@ -39,17 +39,51 @@ export default function ExpenseTracker() {
       console.log("No userId available for adding expenses.");
       return;
     }
+  
     try {
+      let updatedData = [...data]; // Local state copy to keep UI in sync
+  
       for (let expense of expenses) {
-        console.log("Adding expense:", expense);
+        console.log("Processing expense:", expense);
+  
+        // Get the expenses collection for the current user
         const expensesCollection = collection(db, 'users', userId, 'expenses');
-        await addDoc(expensesCollection, expense);
+        const expenseSnapshot = await getDocs(expensesCollection);
+        
+        // Check if the category exists in Firestore
+        const existingDoc = expenseSnapshot.docs.find(
+          (doc) => doc.data().name === expense.name
+        );
+  
+        if (existingDoc) {
+          // Fetch existing value and add new value to it
+          const existingValue = existingDoc.data().value || 0;
+          const updatedValue = existingValue + expense.value;
+  
+          // Update the document in Firestore
+          await existingDoc.ref.update({ value: updatedValue });
+  
+          // Update the local data array to reflect changes immediately
+          updatedData = updatedData.map((item) =>
+            item.name === expense.name ? { ...item, value: updatedValue } : item
+          );
+        } else {
+          // If category does not exist, add a new document
+          const newDocRef = await addDoc(expensesCollection, expense);
+          
+          // Add new expense to the local data array
+          updatedData.push({ id: newDocRef.id, ...expense });
+        }
       }
-      fetchExpenses(userId);
+  
+      // Update local state and re-fetch data to sync with Firestore
+      setData(updatedData);
+      fetchExpenses(userId); // Ensures latest data is fetched from Firestore
     } catch (error) {
-      console.error("Error adding documents:", error);
+      console.error("Error processing expenses:", error);
     }
   };
+    
 
   const totalExpenses = data.reduce((acc, item) => acc + item.value, 0);
 

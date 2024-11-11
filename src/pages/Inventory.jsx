@@ -160,17 +160,30 @@ const Inventory = () => {
           product.companyName.toLowerCase() === productData.companyName.toLowerCase() &&
           product.name.toLowerCase() === productData.name.toLowerCase()
       );
-
+  
       if (existingProduct) {
-        setProductData((prevData) => ({ ...prevData, skuId: existingProduct.skuId }));
+        // Populate product data with existing details, but leave quantity blank for new input
+        setProductData((prevData) => ({
+          ...prevData,
+          skuId: existingProduct.skuId,
+          price: existingProduct.price,
+          description: existingProduct.description,
+          purchaseDate: existingProduct.purchaseDate,
+          quantity: '', // Leave quantity empty for user input
+        }));
         setIsExistingSKU(true);
+        setEditProductId(existingProduct.id); // Use existing product ID to trigger an update
       } else {
-        setProductData((prevData) => ({ ...prevData, skuId: `SKU-${Math.floor(1000 + Math.random() * 9000)}` }));
+        setProductData((prevData) => ({
+          ...prevData,
+          skuId: `SKU-${Math.floor(1000 + Math.random() * 9000)}`,
+        }));
         setIsExistingSKU(false);
+        setEditProductId(null); // Reset if no existing product found
       }
     }
   }, [productData.companyName, productData.name, products]);
-
+  
   const openModal = () => {
     const todayDate = new Date().toISOString().split('T')[0];
     setProductData({
@@ -360,19 +373,27 @@ const Inventory = () => {
   
     try {
       if (editProductId) {
-        // If `editProductId` is set, update the existing product
+        // Get the existing product and calculate new quantity
+        const existingProduct = products.find((product) => product.id === editProductId);
+        const newQuantity = parseInt(existingProduct.quantity) + parseInt(productData.quantity);
+  
+        // Update the product in Firestore with new data, adding the quantities
         const productRef = doc(db, `users/${user.uid}/products`, editProductId);
-        await updateDoc(productRef, productData);
+        await updateDoc(productRef, {
+          ...productData,
+          quantity: newQuantity, // Sum of prior and new quantity
+        });
   
-        // Update the local state with edited product data
-        setProducts(products.map((product) => (product.id === editProductId ? { ...productData, id: editProductId } : product)));
+        // Update local state to reflect changes immediately in UI
+        setProducts(products.map((product) =>
+          product.id === editProductId ? { ...productData, quantity: newQuantity, id: editProductId } : product
+        ));
   
-        // Reset editProductId after updating
-        setEditProductId(null);
+        setEditProductId(null); // Reset after updating
       } else {
-        // Add a new product if `editProductId` is not set
+        // Add a new product if it doesn't exist
         const docRef = await addDoc(collection(db, `users/${user.uid}/products`), productData);
-        setProducts([...products, { ...productData, id: docRef.id }]);
+        setProducts([...products, { ...productData, id: docRef.id }]); // Update local state directly
       }
   
       // Reset form and close modal
@@ -389,8 +410,8 @@ const Inventory = () => {
     } catch (error) {
       console.error('Error adding or updating product: ', error);
     }
-  };  
-
+  };
+  
   const handleEdit = (product) => {
     setProductData(product);
     setEditProductId(product.id); // Set the product ID to edit
@@ -404,13 +425,6 @@ const Inventory = () => {
       return;
     }
   
-    console.log('Deleting product with SKU ID:', skuId); // Log the skuId for debugging
-  
-    if (!skuId) {
-      console.error('SKU ID is undefined.');
-      return;
-    }
-  
     try {
       const productsRef = collection(db, `users/${user.uid}/products`);
       const q = query(productsRef, where("skuId", "==", skuId));
@@ -420,8 +434,8 @@ const Inventory = () => {
         const docRef = querySnapshot.docs[0].ref;
         await deleteDoc(docRef);
   
-        // Update local state to remove the deleted product
-        setProducts(products.filter((product) => product.skuId !== skuId));
+        // Fetch products after deleting
+        fetchProducts(user); // Refreshes products to update the UI
         alert('Product deleted successfully!');
       } else {
         console.error('No product found with the specified SKU ID.');
@@ -429,7 +443,7 @@ const Inventory = () => {
     } catch (error) {
       console.error('Error deleting product: ', error);
     }
-  };  
+  };    
 
   return (
     <div className="p-8">
