@@ -15,6 +15,7 @@ const Invoices = () => {
   const [total, setTotal] = useState(0);
   const [invoiceID] = useState(`INV-${Date.now()}`);
   const [paymentMethod, setPaymentMethod] = useState("");
+  const [showInvoiceModal, setShowInvoiceModal] = useState(false);
 
   const auth = getAuth();
   const user = auth.currentUser;
@@ -62,6 +63,10 @@ const Invoices = () => {
     fetchProducts();
     fetchInvoices();
   }, [user]);
+
+  // Show modal for invoices
+  const openInvoiceModal = () => setShowInvoiceModal(true);
+  const closeInvoiceModal = () => setShowInvoiceModal(false);
 
   // Calculate subtotal, tax, and total whenever selected items change
   useEffect(() => {
@@ -320,6 +325,7 @@ const Invoices = () => {
       {/* Left Section - Invoice Form */}
       <div className="w-1/2 p-4 bg-white shadow-md rounded-md">
         <h2 className="text-2xl font-bold mb-4 text-center">WealthWare</h2>
+        
         <form onSubmit={handlePrint} className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700">Invoice ID</label>
@@ -341,6 +347,7 @@ const Invoices = () => {
             />
           </div>
   
+          {/* Product selection and quantity inputs */}
           {selectedItems.map((item, index) => (
             <div key={index} className="space-y-2">
               <div>
@@ -391,7 +398,8 @@ const Invoices = () => {
           >
             Add More Products
           </button>
-  
+
+          {/* Customer and Payment information */}
           <div>
             <label className="block text-sm font-medium text-gray-700">Customer Name</label>
             <input
@@ -440,66 +448,88 @@ const Invoices = () => {
         </form>
       </div>
   
-      {/* Right Section - Invoices List */}
-      <div className="w-1/2 p-4 bg-white shadow-md rounded-md">
-          <div className="flex justify-between items-center mb-4">
-            <h3 className="text-xl font-semibold">Invoices List</h3>
+      {/* Right Section - "See Invoices" Button */}
+      <div className="w-1/2 p-4 bg-white shadow-md rounded-md flex justify-end items-start">
+        <button
+          onClick={openInvoiceModal}
+          className="bg-blue-500 text-white px-4 py-2 rounded-md"
+        >
+          See Invoices
+        </button>
+      </div>
 
-            {/* Search Box */}
-            <input
-              type="text"
-              placeholder="Search by Invoice ID or Customer Name"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="border px-2 py-1 rounded w-1/2"
-            />
-          </div>
-          <table className="min-w-full border border-gray-300 table-fixed">
-            <thead>
-              <tr>
-                <th className="px-2 py-1 border-b text-sm font-medium text-gray-700">Invoice ID</th>
-                <th className="px-2 py-1 border-b text-sm font-medium text-gray-700">Date</th>
-                <th className="px-2 py-1 border-b text-sm font-medium text-gray-700">Customer</th>
-                <th className="px-2 py-1 border-b text-sm font-medium text-gray-700">Total Amount</th>
-                <th className="px-2 py-1 border-b text-sm font-medium text-gray-700">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredInvoices.length > 0 ? (
-                filteredInvoices.map((invoice) => (
-                  <tr key={invoice.id} className="text-sm">
-                    <td className="px-2 py-1 border-b text-center truncate">{invoice.invoiceID}</td>
-                    <td className="px-2 py-1 border-b text-center truncate">{invoice.date}</td>
-                    <td className="px-2 py-1 border-b text-center truncate">{invoice.customerName}</td>
-                    <td className="px-2 py-1 border-b text-center truncate">₹{invoice.total.toFixed(2)}</td>
-                    <td className="px-2 py-1 border-b text-center">
-                      <button
-                        onClick={() => handleViewInvoice(invoice.invoiceID)}
-                        className="bg-blue-500 text-white px-2 py-1 rounded-md text-xs mr-2"
-                      >
-                        View
-                      </button>
-                      <button
-                        onClick={() => handleDeleteInvoice(invoice.id)}
-                        className="bg-red-500 text-white px-2 py-1 rounded-md text-xs -ml-1"
-                      >
-                        Delete
-                      </button>
-                    </td>
-                  </tr>
+      {/* Invoice Modal */}
+      {showInvoiceModal && (
+        <div className="fixed inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white p-6 rounded-lg w-3/4">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-xl font-semibold">Invoices List</h3>
+              <button onClick={closeInvoiceModal} className="text-red-500 text-xl font-bold">
+                X
+              </button>
+            </div>
+
+            {/* Search Bar in Modal */}
+            <div className="flex items-center space-x-2 mb-4">
+              <input
+                type="text"
+                placeholder="Search by Invoice ID or Customer Name"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="border px-2 py-1 rounded w-full"
+              />
+              <button className="bg-blue-500 text-white px-4 py-1 rounded">Search</button>
+            </div>
+
+            {/* Invoices Table */}
+            <table className="w-full border-collapse border border-gray-400 table-fixed">
+              <thead className="bg-black text-white">
+                <tr>
+                  <th className="px-2 py-1 border-b text-sm font-medium">Invoice ID</th>
+                  <th className="px-2 py-1 border-b text-sm font-medium">Date</th>
+                  <th className="px-2 py-1 border-b text-sm font-medium">Customer</th>
+                  <th className="px-2 py-1 border-b text-sm font-medium">Total Amount</th>
+                  <th className="px-2 py-1 border-b text-sm font-medium">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="bg-gray-100">
+                {filteredInvoices.length > 0 ? (
+                  filteredInvoices.map((invoice) => (
+                    <tr key={invoice.id}>
+                      <td className="px-2 py-1 border-b text-center truncate">{invoice.invoiceID}</td>
+                      <td className="px-2 py-1 border-b text-center truncate">{invoice.date}</td>
+                      <td className="px-2 py-1 border-b text-center truncate">{invoice.customerName}</td>
+                      <td className="px-2 py-1 border-b text-center truncate">₹{invoice.total.toFixed(2)}</td>
+                      <td className="px-2 py-1 border-b text-center">
+                        <button
+                          onClick={() => handleViewInvoice(invoice.invoiceID)}
+                          className="bg-blue-500 text-white px-2 py-1 rounded-md text-xs mr-2"
+                        >
+                          View
+                        </button>
+                        <button
+                          onClick={() => handleDeleteInvoice(invoice.id)}
+                          className="bg-red-500 text-white px-2 py-1 rounded-md text-xs -ml-1"
+                        >
+                          Delete
+                        </button>
+                      </td>
+                    </tr>
                   ))
                 ) : (
                   <tr>
                     <td colSpan="5" className="text-center py-4 text-gray-500">
-                      No data found
+                      No invoices found
                     </td>
                   </tr>
                 )}
-            </tbody>
-          </table>
-      </div>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
     </div>
-  );  
+  );
 };
 
 export default Invoices;

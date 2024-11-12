@@ -4,7 +4,8 @@ import { db, auth } from './firebase';
 import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
-  signOut
+  signOut,
+  sendEmailVerification
 } from 'firebase/auth';
 import { setDoc, doc } from 'firebase/firestore';
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
@@ -48,6 +49,10 @@ const Login = ({ setIsAuthenticated }) => {
         // Create user with email and password in Firebase Authentication
         const userCredential = await createUserWithEmailAndPassword(auth, email.current.value, password.current.value);
         const user = userCredential.user;
+
+        // Send verification email
+        await sendEmailVerification(user);
+        alert('Verification email sent! Please check your inbox and verify your email before logging in.');
   
         // Upload the shop logo to Firebase Storage
         const file = shoplogo.current.files[0];
@@ -73,7 +78,6 @@ const Login = ({ setIsAuthenticated }) => {
           createdAt: new Date().toISOString(),
         });
   
-        alert('Registered Successfully!');
         navigate('/login');
         loginLink();
       } catch (error) {
@@ -95,10 +99,16 @@ const Login = ({ setIsAuthenticated }) => {
       );
       const user = userCredential.user;
 
+      // Check if email is verified
+      if (!user.emailVerified) {
+        alert('Please verify your email before logging in.');
+        return;
+      }
+
       setIsAuthenticated(true);
       navigate('/');
     } catch (error) {
-      alert('User not Found!');
+      alert('User not Found or email not verified.');
     }
   };
 
@@ -118,6 +128,22 @@ const Login = ({ setIsAuthenticated }) => {
 
   const loginLink = () => {
     setShow(true);
+  };
+
+  // Optional: Function to resend verification email
+  const resendVerificationEmail = async () => {
+    try {
+      const user = auth.currentUser;
+      if (user && !user.emailVerified) {
+        await sendEmailVerification(user);
+        alert('Verification email resent! Please check your inbox.');
+      } else {
+        alert('User is already verified or not logged in.');
+      }
+    } catch (error) {
+      console.error('Error resending verification email:', error);
+      alert('Error: ' + error.message);
+    }
   };
 
   return (
@@ -212,6 +238,12 @@ const Login = ({ setIsAuthenticated }) => {
                       Register
                     </button>
                   </p>
+                  <button
+                    onClick={resendVerificationEmail}
+                    className="text-blue-500 hover:underline mt-2"
+                  >
+                    Resend Verification Email
+                  </button>
                 </div>
               </form>
             </div>
