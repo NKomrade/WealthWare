@@ -12,6 +12,7 @@ const Invoices = () => {
   const [customerAddress, setCustomerAddress] = useState("");
   const [subtotal, setSubtotal] = useState(0);
   const [tax, setTax] = useState(0);
+  const [discount, setDiscount] = useState(0);
   const [total, setTotal] = useState(0);
   const [invoiceID] = useState(`INV-${Date.now()}`);
   const [paymentMethod, setPaymentMethod] = useState("");
@@ -76,12 +77,16 @@ const Invoices = () => {
       }
       return acc;
     }, 0);
-
+  
     const newTax = newSubtotal * 0.18;
+    const discountAmount = (newSubtotal + newTax) * (discount / 100); // Calculate discount based on total
+  
+    // Set subtotal, tax, and total directly
     setSubtotal(newSubtotal);
     setTax(newTax);
-    setTotal(newSubtotal + newTax);
-  }, [selectedItems]);
+    setTotal(newSubtotal + newTax - discountAmount); // Update total directly with discount applied
+  }, [selectedItems, discount]);
+  
 
   const handleAddProduct = () => {
     setSelectedItems([...selectedItems, { product: null, quantity: 1 }]);
@@ -221,6 +226,7 @@ const Invoices = () => {
       customerAddress,
       subtotal,
       tax,
+      discount,
       total,
       paymentMethod,
       date: new Date().toISOString().split("T")[0],
@@ -253,7 +259,8 @@ const Invoices = () => {
   // Updated generatePDF function
   const generatePDF = (invoice) => {
     const { invoiceID, customerName, customerAddress, items, subtotal, tax, total } = invoice;
-  
+    const discountAmount = (subtotal + tax) * (discount / 100);
+
     const htmlContent = `
       <!DOCTYPE html>
       <html lang="en">
@@ -302,6 +309,7 @@ const Invoices = () => {
             <div class="total text-right mt-4 space-y-1">
               <p><span class="font-semibold">Subtotal:</span> ₹${subtotal.toFixed(2)}</p>
               <p><span class="font-semibold">Tax (18%):</span> ₹${tax.toFixed(2)}</p>
+              <p><span class="font-semibold">Discount (${discount}%):</span> -₹${discountAmount.toFixed(2)}</p>
               <p><span class="font-semibold text-lg">Total Amount:</span> ₹${total.toFixed(2)}</p>
             </div>
           </div>
@@ -346,58 +354,22 @@ const Invoices = () => {
               className="mt-1 block w-full p-2 border border-gray-300 rounded-md"
             />
           </div>
-  
-          {/* Product selection and quantity inputs */}
-          {selectedItems.map((item, index) => (
-            <div key={index} className="space-y-2">
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Product</label>
-                <select
-                  value={item.product?.skuId || ""}
-                  onChange={(e) => handleProductChange(index, e.target.value)}
-                  required
-                  className="mt-1 block w-full p-2 border border-gray-300 rounded-md"
-                >
-                  <option value="">Select a product</option>
-                  {products.map((product) => (
-                    <option key={product.skuId} value={product.skuId}>
-                      {product.name} - ₹{product.price} (SKU: {product.skuId}, Available: {product.quantity})
-                    </option>
-                  ))}
-                </select>
-              </div>
-  
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Quantity</label>
-                <input
-                  type="number"
-                  min="1"
-                  value={item.quantity}
-                  onChange={(e) => handleQuantityChange(index, Number(e.target.value))}
-                  required
-                  className="mt-1 block w-full p-2 border border-gray-300 rounded-md"
-                />
-              </div>
-  
-              {index > 0 && (
-                <button
-                  type="button"
-                  onClick={() => handleRemoveProduct(index)}
-                  className="bg-red-500 text-white px-2 py-1 rounded-md"
-                >
-                  -
-                </button>
-              )}
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700">Discount</label>
+            <div className="flex items-center">
+              <input
+                type="number"
+                min="0"
+                max="100"
+                value={discount}
+                onChange={(e) => setDiscount(Number(e.target.value))}
+                required
+                className="mt-1 block w-full p-2 border border-gray-300 rounded-md"
+              />
+              <span className="ml-2">%</span>
             </div>
-          ))}
-  
-          <button
-            type="button"
-            onClick={handleAddProduct}
-            className="w-full bg-blue-500 text-white p-2 rounded-md hover:bg-blue-600"
-          >
-            Add More Products
-          </button>
+          </div>
 
           {/* Customer and Payment information */}
           <div>
@@ -439,6 +411,7 @@ const Invoices = () => {
           <div>
             <p className="text-sm font-medium text-gray-700">Subtotal: ₹{subtotal.toFixed(2)}</p>
             <p className="text-sm font-medium text-gray-700">Tax (18%): ₹{tax.toFixed(2)}</p>
+            <p className="text-sm font-medium text-gray-700">Discount: {discount}%</p>
             <p className="text-sm font-medium text-gray-700">Total Amount: ₹{total.toFixed(2)}</p>
           </div>
   
@@ -447,14 +420,69 @@ const Invoices = () => {
           </button>
         </form>
       </div>
-  
-      {/* Right Section - "See Invoices" Button */}
-      <div className="w-1/2 p-4 bg-white shadow-md rounded-md flex justify-end items-start">
+
+      {/* Right Section - Product Selection and "See Invoices" Button */}
+      <div className="w-1/2 p-4 bg-white shadow-md rounded-md flex flex-col space-y-4 relative">
+        {/* See Invoices Button at the top right */}
         <button
           onClick={openInvoiceModal}
-          className="bg-blue-500 text-white px-4 py-2 rounded-md"
+          className="absolute top-4 right-4 bg-blue-500 text-white px-4 py-2 rounded-md"
         >
           See Invoices
+        </button>
+
+        <h2 className="text-2xl font-bold mb-4 text-center">Products</h2>
+
+        {/* Product selection and quantity inputs */}
+        {selectedItems.map((item, index) => (
+          <div key={index} className="space-y-2 w-full">
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Product</label>
+              <select
+                value={item.product?.skuId || ""}
+                onChange={(e) => handleProductChange(index, e.target.value)}
+                required
+                className="mt-1 block w-full p-2 border border-gray-300 rounded-md"
+              >
+                <option value="">Select a product</option>
+                {products.map((product) => (
+                  <option key={product.skuId} value={product.skuId}>
+                    {product.name} - ₹{product.price} (SKU: {product.skuId}, Available: {product.quantity})
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Quantity</label>
+              <input
+                type="number"
+                min="1"
+                value={item.quantity}
+                onChange={(e) => handleQuantityChange(index, Number(e.target.value))}
+                required
+                className="mt-1 block w-full p-2 border border-gray-300 rounded-md"
+              />
+            </div>
+
+            {index > 0 && (
+              <button
+                type="button"
+                onClick={() => handleRemoveProduct(index)}
+                className="bg-red-500 text-white px-2 py-1 rounded-md"
+              >
+                Remove
+              </button>
+            )}
+          </div>
+        ))}
+
+        <button
+          type="button"
+          onClick={handleAddProduct}
+          className="w-full bg-blue-500 text-white p-2 rounded-md hover:bg-blue-600 mt-4"
+        >
+          Add More Products
         </button>
       </div>
 
@@ -464,7 +492,7 @@ const Invoices = () => {
           <div className="bg-white p-6 rounded-lg w-3/4">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-xl font-semibold">Invoices List</h3>
-              <button onClick={closeInvoiceModal} className="text-red-500 text-xl font-bold">
+              <button onClick={closeInvoiceModal} className="text-gray-500 hover:text-black text-xl font-bold">
                 X
               </button>
             </div>
