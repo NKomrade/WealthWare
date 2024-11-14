@@ -19,6 +19,9 @@ const Login = ({ setIsAuthenticated }) => {
   const shopname = useRef();
   const shoplogo = useRef();
   const typeofshop = useRef();
+  const [nameError, setNameError] = useState('');
+  const [phoneError, setPhoneError] = useState('');
+  const [emailError, setEmailError] = useState('');
   const [showHome, setShowHome] = useState(false);
   const [show, setShow] = useState(true);
   const [showPasswordLogin, setShowPasswordLogin] = useState(false);
@@ -34,58 +37,84 @@ const Login = ({ setIsAuthenticated }) => {
 
   const handleClick = async (e) => {
     e.preventDefault();
+    
+    const nameValue = name.current.value;
+    const emailValue = email.current.value;
+    const passwordValue = password.current.value;
+    const phoneValue = phone.current.value;
+    const shopnameValue = shopname.current.value;
+    const typeofshopValue = typeofshop.current.value;
+    const file = shoplogo.current.files[0];
+    
+    // Name validation: Only letters and spaces
+    if (!/^[a-zA-Z\s]+$/.test(nameValue)) {
+      alert("Name can only contain letters and spaces.");
+      return;
+    }else {
+      setNameError("");
+    }
   
-    if (
-      !show &&
-      name.current.value &&
-      email.current.value &&
-      password.current.value &&
-      phone.current.value &&  
-      shopname.current.value &&
-      typeofshop.current.value &&
-      shoplogo.current.files.length > 0
-    ) {
-      try {
-        // Create user with email and password in Firebase Authentication
-        const userCredential = await createUserWithEmailAndPassword(auth, email.current.value, password.current.value);
-        const user = userCredential.user;
-
-        // Send verification email
-        await sendEmailVerification(user);
-        alert('Verification email sent! Please check your inbox and verify your email before logging in.');
+    // Email validation: Only @gmail.com allowed
+    if (!/@gmail\.com$/.test(emailValue)) {
+      alert("Email must be a Gmail address (ends with @gmail.com).");
+      return;
+    }else {
+      setEmailError("");
+    }
   
-        // Upload the shop logo to Firebase Storage
-        const file = shoplogo.current.files[0];
+    // Phone validation: Only numbers allowed
+    if (!/^\d+$/.test(phoneValue)) {
+      alert("Phone number can only contain numbers.");
+      return;
+    }else {
+      setPhoneError("");
+    }
+  
+    // Check if all fields are filled (excluding optional shop logo)
+    if (!nameValue || !emailValue || !passwordValue || !phoneValue || !shopnameValue || !typeofshopValue) {
+      alert("Please fill all required fields in the registration form.");
+      return;
+    }
+  
+    try {
+      // Create user with email and password in Firebase Authentication
+      const userCredential = await createUserWithEmailAndPassword(auth, emailValue, passwordValue);
+      const user = userCredential.user;
+  
+      // Send verification email
+      await sendEmailVerification(user);
+      alert('Verification email sent! Please check your inbox and verify your email before logging in.');
+  
+      let downloadURL = "";
+      if (file) {
+        // Upload the shop logo to Firebase Storage if provided
         const storage = getStorage();
         const storageRef = ref(storage, `shoplogos/${user.uid}/${file.name}`);
-  
         await uploadBytes(storageRef, file);
         console.log('File uploaded successfully');
-  
-        const downloadURL = await getDownloadURL(storageRef);
+        downloadURL = await getDownloadURL(storageRef);
         console.log('File available at', downloadURL);
-  
-        // Format phone number with +1 prefix
-        const formattedPhone = `${phone.current.value}`;
-
-        await setDoc(doc(db, 'users', user.uid), {
-          name: name.current.value,
-          email: email.current.value,
-          phone: formattedPhone,  
-          shopname: shopname.current.value,
-          typeofshop: typeofshop.current.value,
-          shoplogo: downloadURL,
-          createdAt: new Date().toISOString(),
-        });
-  
-        navigate('/login');
-        loginLink();
-      } catch (error) {
-        console.error('Error uploading file:', error);
-        alert('Error: ' + error.message);
       }
-    } else {
-      alert('Please fill all fields in the registration form.');
+  
+      // Format phone number (no additional prefixing done as per your code)
+      const formattedPhone = phoneValue;
+  
+      // Store user data in Firestore
+      await setDoc(doc(db, 'users', user.uid), {
+        name: nameValue,
+        email: emailValue,
+        phone: formattedPhone,
+        shopname: shopnameValue,
+        typeofshop: typeofshopValue,
+        shoplogo: downloadURL,
+        createdAt: new Date().toISOString(),
+      });
+  
+      navigate('/login');
+      loginLink();
+    } catch (error) {
+      console.error('Error:', error);
+      alert('Error: ' + error.message);
     }
   };  
 
@@ -253,19 +282,30 @@ const Login = ({ setIsAuthenticated }) => {
                 <h1 className="text-2xl font-bold mb-4">Create an account</h1>
                 <div className="input-box mb-4">
                   <label htmlFor="username" className="block text-gray-700 mb-1">
-                    Username
+                    Name<span className="text-red-500">*</span>
                   </label>
-                  <input
-                    type="text"
-                    placeholder="Enter name"
-                    required
-                    ref={name}
-                    className="border border-neutral-500 rounded-lg p-2 w-full"
-                  />
+                  <div className="flex items-center space-x-2">
+                    <select
+                      className="border border-neutral-500 rounded-lg p-2"
+                      required
+                    >
+                      <option value="Mr.">Mr.</option>
+                      <option value="Mrs.">Mrs.</option>
+                      <option value="Ms.">Ms.</option>
+                    </select>
+                    <input
+                      type="text"
+                      placeholder="Enter name"
+                      required
+                      ref={name}
+                      className="border border-neutral-500 rounded-lg p-2 w-full"
+                    />
+                  </div>
+                  {nameError && <p className="text-red-500 mt-1">{nameError}</p>}
                 </div>
                 <div className="input-box mb-4">
                   <label htmlFor="email" className="block text-gray-700 mb-1">
-                    Email
+                    Email <span className="text-red-500">*</span>
                   </label>
                   <input
                     type="email"
@@ -274,10 +314,11 @@ const Login = ({ setIsAuthenticated }) => {
                     ref={email}
                     className="border border-neutral-500 rounded-lg p-2 w-full"
                   />
+                  {emailError && <p className="text-red-500 mt-1">{emailError}</p>}
                 </div>
                 <div className="input-box mb-4 relative">
                   <label htmlFor="password" className="block text-gray-700 mb-1">
-                    Password
+                    Password <span className="text-red-500">*</span>
                   </label>
                   <input
                     type={showPasswordRegister ? 'text' : 'password'}
@@ -300,7 +341,7 @@ const Login = ({ setIsAuthenticated }) => {
                 </div>
                 <div className="input-box mb-4">
                   <label htmlFor="phone" className="block text-gray-700 mb-1">
-                    Phone Number
+                    Phone Number <span className="text-red-500">*</span>
                   </label>
                   <input
                     type="tel"
@@ -309,10 +350,11 @@ const Login = ({ setIsAuthenticated }) => {
                     ref={phone}
                     className="border border-neutral-500 rounded-lg p-2 w-full"
                   />
+                  {phoneError && <p className="text-red-500 mt-1">{phoneError}</p>}
                 </div>
                 <div className="input-box mb-4">
                   <label htmlFor="shopname" className="block text-gray-700 mb-1">
-                    Shop Name
+                    Shop Name <span className="text-red-500">*</span>
                   </label>
                   <input
                     type="text"
@@ -323,7 +365,7 @@ const Login = ({ setIsAuthenticated }) => {
                   />
                 </div>
                 <div className='input-box mb-4'>
-                  <label htmlFor="typeofshop" className="block text-gray-700 mb-1">Type of shop</label>
+                  <label htmlFor="typeofshop" className="block text-gray-700 mb-1">Type of shop <span className="text-red-500">*</span></label>
                   <select ref={typeofshop} className="border border-neutral-500 rounded-lg p-2 w-full" required>
                     <option value="">--Select type of shop--</option>
                     <option value="Franchise">Franchise</option>
@@ -356,15 +398,16 @@ const Login = ({ setIsAuthenticated }) => {
                     <option value="Toy Shop">Toy Shop</option>
                     <option value="Bicycle Shop">Bicycle Shop</option>
                     <option value="Textile Shop">Textile Shop</option>
+                    <option value="others">Others</option>
                   </select>
                 </div>
                 <div className="input-box mb-4">
                   <label htmlFor="shoplogo" className="block text-gray-700 mb-1">
-                    Shop Logo
+                    Upload Profile (optional)
                   </label>
                   <input
                     type="file"
-                    required
+                    accept= ".jpg, .jpeg, .png"
                     ref={shoplogo}
                     className="rounded-lg p-2 w-full"
                   />
