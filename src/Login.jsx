@@ -22,6 +22,7 @@ const Login = ({ setIsAuthenticated }) => {
   const [nameError, setNameError] = useState('');
   const [phoneError, setPhoneError] = useState('');
   const [emailError, setEmailError] = useState('');
+  const [passwordError, setPasswordError] = useState('');
   const [showHome, setShowHome] = useState(false);
   const [show, setShow] = useState(true);
   const [showPasswordLogin, setShowPasswordLogin] = useState(false);
@@ -68,6 +69,15 @@ const Login = ({ setIsAuthenticated }) => {
       return;
     }else {
       setPhoneError("");
+    }
+
+    // Password validation
+    const passwordRegex = /^(?=.*[A-Z])(?=.*[!@#$%^&*])(?=.*[a-zA-Z]).{8,}$/;
+    if (!passwordRegex.test(passwordValue)) {
+      setPasswordError("Password must be at least 8 characters, include one uppercase letter and one special character.");
+      return;
+    } else {
+      setPasswordError("");
     }
   
     // Check if all fields are filled (excluding optional shop logo)
@@ -326,6 +336,16 @@ const Login = ({ setIsAuthenticated }) => {
                     required
                     ref={password}
                     className="border border-neutral-500 rounded-lg p-2 w-full"
+                    onChange={(e) => {
+                      const passwordValue = e.target.value;
+                      const passwordRegex = /^(?=.*[A-Z])(?=.*[!@#$%^&*])(?=.*[a-zA-Z]).{8,}$/;
+                      
+                      if (!passwordRegex.test(passwordValue)) {
+                        setPasswordError("Password must be at least 8 characters, include one uppercase letter, and one special character.");
+                      } else {
+                        setPasswordError("");
+                      }
+                    }}
                   />
                   <button
                     type="button"
@@ -338,6 +358,7 @@ const Login = ({ setIsAuthenticated }) => {
                       <AiOutlineEye size={24} />
                     )}
                   </button>
+                  {passwordError && <p className="text-red-500 mt-1">{passwordError}</p>}
                 </div>
                 <div className="input-box mb-4">
                   <label htmlFor="phone" className="block text-gray-700 mb-1">
