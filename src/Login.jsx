@@ -9,7 +9,7 @@ import {
 } from 'firebase/auth';
 import { setDoc, doc } from 'firebase/firestore';
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { AiOutlineEye, AiOutlineEyeInvisible } from 'react-icons/ai';
+import { AiOutlineEye, AiOutlineEyeInvisible, AiOutlineHome } from 'react-icons/ai';
 
 const Login = ({ setIsAuthenticated }) => {
   const name = useRef();
@@ -145,7 +145,7 @@ const Login = ({ setIsAuthenticated }) => {
       }
 
       setIsAuthenticated(true);
-      navigate('/');
+      navigate('/dashboard');
     } catch (error) {
       alert('User not Found or email not verified.');
     }
@@ -193,6 +193,15 @@ const Login = ({ setIsAuthenticated }) => {
           style={{ backgroundImage: `url(${process.env.PUBLIC_URL}/login.jpg)` }}
         ></div>
       )}
+      <div className="absolute top-4 right-4 bg-white/60 backdrop-blur-md shadow-lg p-3 rounded-full">
+        <button
+          onClick={() => navigate('/')} // Navigate to the homepage
+          className="text-black hover:text-gray-700"
+          title="Go to Homepage"
+        >
+          <AiOutlineHome size={28} />
+        </button>
+      </div>
       {!show && (
         <img
           src={`${process.env.PUBLIC_URL}/signup.jpg`}
@@ -268,7 +277,7 @@ const Login = ({ setIsAuthenticated }) => {
                 </button>
                 <div className="register-link text-center mt-4">
                   <p>
-                    Don't Have An Account?{' '}
+                    Don't have an account?{' '}
                     <button
                       type="button"
                       onClick={registerLink}
@@ -292,7 +301,7 @@ const Login = ({ setIsAuthenticated }) => {
                 <h1 className="text-2xl font-bold mb-4">Create an account</h1>
                 <div className="input-box mb-4">
                   <label htmlFor="username" className="block text-gray-700 mb-1">
-                    Name<span className="text-red-500">*</span>
+                    Name<span className="text-red-500"> *</span>
                   </label>
                   <div className="flex items-center space-x-2">
                     <select
@@ -441,7 +450,7 @@ const Login = ({ setIsAuthenticated }) => {
                 </button>
                 <div className="login-link text-center mt-4">
                   <p>
-                    Already Have An Account?{' '}
+                    Already have an account?{' '}
                     <button
                       type="button"
                       onClick={loginLink}

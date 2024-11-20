@@ -1,6 +1,9 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { useState, useEffect, useCallback } from 'react';
 import Layout from './components/shared/Layout';
+import Homepage from './pages/HomePage';
+import About from './pages/About';
+import Contact from './pages/Contact';
 import Dashboard from './pages/Dashboard';
 import Inventory from './pages/Inventory';
 import Invoices from './pages/Invoices';
@@ -48,19 +51,22 @@ function App() {
             <Router>
                 <Routes>
                     {/* Public Routes */}
+                    <Route path="/" element={<Homepage />} />
+                    <Route path="/about" element={<About />} />
+                    <Route path="/contact" element={<Contact />} />
                     <Route path="/login" element={<Login setIsAuthenticated={setIsAuthenticated} />} />
                     <Route path="/forgotpassword" element={<Forgotpassword />} />
 
                     {/* Protected Routes */}
                     <Route
-                        path="/"
+                        path="/dashboard/*"
                         element={
                             <ProtectedRoute isAuthenticated={isAuthenticated}>
                                 <Layout />
                             </ProtectedRoute>
                         }
                     >
-                        <Route index element={<Dashboard />} />
+                        <Route path="" element={<Dashboard />} />
                         <Route path="inventory" element={<Inventory />} />
                         <Route path="invoices" element={<Invoices />} />
                         <Route path="expensetracking" element={<ExpenseTracking />} />
@@ -72,7 +78,7 @@ function App() {
                     {/* Fallback Route */}
                     <Route
                         path="*"
-                        element={<Navigate to={isAuthenticated ? "/" : "/login"} replace />}
+                        element={<Navigate to="/" replace />}
                     />
                 </Routes>
             </Router>

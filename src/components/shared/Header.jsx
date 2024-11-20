@@ -116,7 +116,7 @@ export default function Header() {
                 <Menu.Item>
                   {({ active }) => (
                     <div
-                      onClick={() => navigate('/profile')}
+                      onClick={() => navigate('profile')}
                       className={classNames(
                         active ? 'bg-gray-100' : '',
                         'block px-4 py-2 text-sm text-gray-700 cursor-pointer'
@@ -131,7 +131,7 @@ export default function Header() {
                 <Menu.Item>
                   {({ active }) => (
                     <div
-                      onClick={() => navigate('/settings')}
+                      onClick={() => navigate('settings')}
                       className={classNames(
                         active ? 'bg-gray-100' : '',
                         'block px-4 py-2 text-sm text-gray-700 cursor-pointer'

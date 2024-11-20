@@ -78,14 +78,13 @@ const Invoices = () => {
       return acc;
     }, 0);
   
-    const newTax = newSubtotal * 0.18;
-    const discountAmount = (newSubtotal + newTax) * (discount / 100); // Calculate discount based on total
+    const taxAmount = newSubtotal * (tax / 100);
+    const discountAmount = (newSubtotal + taxAmount) * (discount / 100); // Calculate discount based on total
   
     // Set subtotal, tax, and total directly
     setSubtotal(newSubtotal);
-    setTax(newTax);
-    setTotal(newSubtotal + newTax - discountAmount); // Update total directly with discount applied
-  }, [selectedItems, discount]);
+    setTotal(newSubtotal + taxAmount - discountAmount); // Update total directly with discount applied
+  }, [selectedItems, tax, discount]);
   
 
   const handleAddProduct = () => {
@@ -305,10 +304,10 @@ const Invoices = () => {
                   .join("")}
               </tbody>
             </table>
-  
+
             <div class="total text-right mt-4 space-y-1">
               <p><span class="font-semibold">Subtotal:</span> ₹${subtotal.toFixed(2)}</p>
-              <p><span class="font-semibold">Tax (18%):</span> ₹${tax.toFixed(2)}</p>
+              <p><span class="font-semibold">Tax (${tax}%):</span> ₹${(subtotal * (tax / 100)).toFixed(2)}</p>
               <p><span class="font-semibold">Discount (${discount}%):</span> -₹${discountAmount.toFixed(2)}</p>
               <p><span class="font-semibold text-lg">Total Amount:</span> ₹${total.toFixed(2)}</p>
             </div>
@@ -320,7 +319,7 @@ const Invoices = () => {
           </div>
         </body>
       </html>
-    `;
+      `;
   
     // Open a new window and write the PDF content to it
     const newWindow = window.open("", "_blank");
@@ -353,6 +352,22 @@ const Invoices = () => {
               readOnly
               className="mt-1 block w-full p-2 border border-gray-300 rounded-md"
             />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700">Tax</label>
+            <select
+              value={tax}
+              onChange={(e) => setTax(Number(e.target.value))}
+              className="mt-1 block w-full p-2 border border-gray-300 rounded-md"
+              required
+            >
+              <option value={0}>0%</option>
+              <option value={5}>5%</option>
+              <option value={12}>12%</option>
+              <option value={18}>18%</option>
+              <option value={28}>28%</option>
+            </select>
           </div>
 
           <div>
@@ -422,7 +437,7 @@ const Invoices = () => {
       </div>
 
       {/* Right Section - Product Selection and "See Invoices" Button */}
-      <div className="w-1/2 p-4 bg-white shadow-md rounded-md flex flex-col space-y-4 relative">
+      <div className="w-1/2 p-4 bg-white shadow-md rounded-md flex flex-col relative">
         {/* See Invoices Button at the top right */}
         <button
           onClick={openInvoiceModal}
@@ -433,57 +448,59 @@ const Invoices = () => {
 
         <h2 className="text-2xl font-bold mb-4 text-center">Products</h2>
 
-        {/* Product selection and quantity inputs */}
-        {selectedItems.map((item, index) => (
-          <div key={index} className="space-y-2 w-full">
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Product</label>
-              <select
-                value={item.product?.skuId || ""}
-                onChange={(e) => handleProductChange(index, e.target.value)}
-                required
-                className="mt-1 block w-full p-2 border border-gray-300 rounded-md"
-              >
-                <option value="">Select a product</option>
-                {products.map((product) => (
-                  <option key={product.skuId} value={product.skuId}>
-                    {product.name} - ₹{product.price} (SKU: {product.skuId}, Available: {product.quantity})
-                  </option>
-                ))}
-              </select>
+        {/* Product selection and quantity inputs with fixed height and scrollable content */}
+        <div className="flex-1 max-h-[calc(100vh-150px)] overflow-y-auto border border-gray-300 p-4 rounded-md">
+          {selectedItems.map((item, index) => (
+            <div key={index} className="space-y-2 w-full">
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Product</label>
+                <select
+                  value={item.product?.skuId || ""}
+                  onChange={(e) => handleProductChange(index, e.target.value)}
+                  required
+                  className="mt-1 block w-full p-2 border border-gray-300 rounded-md"
+                >
+                  <option value="">Select a product</option>
+                  {products.map((product) => (
+                    <option key={product.skuId} value={product.skuId}>
+                      {product.name} - ₹{product.price} (SKU: {product.skuId}, Available: {product.quantity})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Quantity</label>
+                <input
+                  type="number"
+                  min="1"
+                  value={item.quantity}
+                  onChange={(e) => handleQuantityChange(index, Number(e.target.value))}
+                  required
+                  className="mt-1 block w-full p-2 border border-gray-300 rounded-md"
+                />
+              </div>
+
+              {index > 0 && (
+                <button
+                  type="button"
+                  onClick={() => handleRemoveProduct(index)}
+                  className="bg-red-500 text-white px-2 py-1 rounded-md"
+                >
+                  Remove
+                </button>
+              )}
             </div>
+          ))}
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Quantity</label>
-              <input
-                type="number"
-                min="1"
-                value={item.quantity}
-                onChange={(e) => handleQuantityChange(index, Number(e.target.value))}
-                required
-                className="mt-1 block w-full p-2 border border-gray-300 rounded-md"
-              />
-            </div>
-
-            {index > 0 && (
-              <button
-                type="button"
-                onClick={() => handleRemoveProduct(index)}
-                className="bg-red-500 text-white px-2 py-1 rounded-md"
-              >
-                Remove
-              </button>
-            )}
-          </div>
-        ))}
-
-        <button
-          type="button"
-          onClick={handleAddProduct}
-          className="w-full bg-blue-500 text-white p-2 rounded-md hover:bg-blue-600 mt-4"
-        >
-          Add More Products
-        </button>
+          <button
+            type="button"
+            onClick={handleAddProduct}
+            className="w-full bg-blue-500 text-white p-2 rounded-md hover:bg-blue-600 mt-4"
+          >
+            Add More Products
+          </button>
+        </div>
       </div>
 
       {/* Invoice Modal */}
