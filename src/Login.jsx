@@ -19,6 +19,9 @@ const Login = ({ setIsAuthenticated }) => {
   const shopname = useRef();
   const shoplogo = useRef();
   const typeofshop = useRef();
+
+  const [isOtherShop, setIsOtherShop] = useState(false); // To toggle the custom shop type input
+  const [customShopType, setCustomShopType] = useState(""); // To store custom shop type value
   const [nameError, setNameError] = useState('');
   const [phoneError, setPhoneError] = useState('');
   const [emailError, setEmailError] = useState('');
@@ -28,6 +31,16 @@ const Login = ({ setIsAuthenticated }) => {
   const [showPasswordLogin, setShowPasswordLogin] = useState(false);
   const [showPasswordRegister, setShowPasswordRegister] = useState(false);
   const navigate = useNavigate();
+
+  const handleShopTypeChange = (e) => {
+    const selectedType = e.target.value;
+    if (selectedType === "others") {
+      setIsOtherShop(true);
+    } else {
+      setIsOtherShop(false);
+      setCustomShopType(""); // Reset custom shop type when it's not "Others"
+    }
+  };
 
   useEffect(() => {
     const localSignUp = localStorage.getItem('signUp');
@@ -44,7 +57,7 @@ const Login = ({ setIsAuthenticated }) => {
     const passwordValue = password.current.value;
     const phoneValue = phone.current.value;
     const shopnameValue = shopname.current.value;
-    const typeofshopValue = typeofshop.current.value;
+    const typeofshopValue = typeofshop.current.value === "others" ? customShopType : typeofshop.current.value;
     const file = shoplogo.current.files[0];
     
     // Name validation: Only letters and spaces
@@ -286,12 +299,6 @@ const Login = ({ setIsAuthenticated }) => {
                       Register
                     </button>
                   </p>
-                  <button
-                    onClick={resendVerificationEmail}
-                    className="text-blue-500 hover:underline mt-2"
-                  >
-                    Resend Verification Email
-                  </button>
                 </div>
               </form>
             </div>
@@ -396,7 +403,7 @@ const Login = ({ setIsAuthenticated }) => {
                 </div>
                 <div className='input-box mb-4'>
                   <label htmlFor="typeofshop" className="block text-gray-700 mb-1">Type of shop <span className="text-red-500">*</span></label>
-                  <select ref={typeofshop} className="border border-neutral-500 rounded-lg p-2 w-full" required>
+                  <select ref={typeofshop} className="border border-neutral-500 rounded-lg p-2 w-full" required onChange={handleShopTypeChange}>
                     <option value="">--Select type of shop--</option>
                     <option value="Franchise">Franchise</option>
                     <option value="Tea Stall">Tea Stall</option>
@@ -430,6 +437,19 @@ const Login = ({ setIsAuthenticated }) => {
                     <option value="Textile Shop">Textile Shop</option>
                     <option value="others">Others</option>
                   </select>
+                  {isOtherShop && (
+                    <div className="mt-2">
+                      <label className="block">Specify Shop Type</label>
+                      <input
+                        type="text"
+                        placeholder="Enter custom shop type"
+                        value={customShopType}
+                        onChange={(e) => setCustomShopType(e.target.value)}
+                        className="border p-2 rounded w-full"
+                        required={isOtherShop}
+                      />
+                    </div>
+                  )}
                 </div>
                 <div className="input-box mb-4">
                   <label htmlFor="shoplogo" className="block text-gray-700 mb-1">

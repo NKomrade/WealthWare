@@ -7,7 +7,7 @@ import { auth } from '../../firebase';
 import { signOut } from 'firebase/auth';
 
 const linkClass =
-	'flex items-center gap-2 font-light px-1 py-2 hover:bg-neutral-100 hover:no-underline rounded-lg text-base transition duration-300';
+	'flex items-center gap-2 font-light px-1 py-2 hover:bg-neutral-100 rounded-lg text-base transition duration-300';
 
 export default function Sidebar() {
 	const navigate = useNavigate();

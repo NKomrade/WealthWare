@@ -9,6 +9,8 @@ const Settings = () => {
   const [activeTab, setActiveTab] = useState('personal');
   const [isEditable, setIsEditable] = useState(false);
   const [popupMessage, setPopupMessage] = useState('');
+  const [errors, setErrors] = useState({}); // For validation errors
+  const [isOtherShop, setIsOtherShop] = useState(false); // Track if "Other" is selected
 
   const [details, setDetails] = useState({
     fullName: '',
@@ -18,6 +20,7 @@ const Settings = () => {
     state: '',
     shopName: '',
     shopType: '',
+    otherShopType: '', // To handle custom "Other" type input
     address: '',
     gstNumber: '',
   });
@@ -39,6 +42,7 @@ const Settings = () => {
               state: data.state || '',
               shopName: data.shopname || '',
               shopType: data.typeofshop || '',
+              otherShopType: '',
               address: data.address || '',
               gstNumber: data.gstNumber || '',
             });
@@ -60,6 +64,30 @@ const Settings = () => {
   const handleChange = (e) => {
     const { name, value } = e.target;
     setDetails((prev) => ({ ...prev, [name]: value }));
+
+    setErrors((prev) => ({ ...prev, [name]: '' }));
+
+    if (name === 'shopType') {
+      setIsOtherShop(value === 'others');
+      if (value !== 'others') {
+        setDetails((prev) => ({ ...prev, otherShopType: '' })); // Clear "Other" input
+      }
+    }
+  };
+
+  const validate = () => {
+    const newErrors = {};
+    if (!/^[a-zA-Z\s]+$/.test(details.fullName)) {
+      newErrors.fullName = 'Name can only contain letters and spaces.';
+    }
+    if (!/^\d{10}$/.test(details.phone)) {
+      newErrors.phone = 'Phone number must be exactly 10 digits.';
+    }
+    if (isOtherShop && !details.otherShopType.trim()) {
+      newErrors.otherShopType = 'Please specify the type of shop.';
+    }
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0; // Return true if no errors
   };
 
   const handleSave = async () => {
@@ -73,7 +101,7 @@ const Settings = () => {
           phone: details.phone,
           state: details.state,
           shopname: details.shopName,
-          typeofshop: details.shopType,
+          typeofshop: isOtherShop ? details.otherShopType : details.shopType,
           address: details.address,
           gstNumber: details.gstNumber,
         });
@@ -82,10 +110,11 @@ const Settings = () => {
           ...prev,
           ownerName: details.fullName,
         }));
-        console.log('Profile updated successfully');
+        setPopupMessage('Profile updated successfully.');
       }
     } catch (error) {
       console.error('Error updating profile:', error);
+      setPopupMessage('Failed to update profile.');
     }
     setIsEditable(false);
   };
@@ -202,6 +231,13 @@ const Settings = () => {
                 <option value="Uttar Pradesh">Uttar Pradesh</option>
                 <option value="Uttarakhand">Uttarakhand</option>
                 <option value="West Bengal">West Bengal</option>
+                <option value="Andaman and Nicobar Islands">Andaman and Nicobar Islands</option>
+                <option value="Chandigarh">Chandigarh</option>
+                <option value="Dadra and Nagar Haveli and Daman and Diu">Dadra and Nagar Haveli and Daman and Diu</option>
+                <option value="Delhi">Delhi</option>
+                <option value="Jammu and Kashmir">Jammu and Kashmir</option>
+                <option value="Ladakh">Ladakh</option>
+                <option value="Puducherry">Puducherry</option>
               </select>
             </div>
             <div>
@@ -231,14 +267,61 @@ const Settings = () => {
             </div>
             <div>
               <label className="block mb-1">Type of Shop</label>
-              <input
+              <select
                 name="shopType"
-                type="text"
+                type={details.shopType}
                 value={details.shopType}
                 onChange={handleChange}
                 disabled={!isEditable}
                 className={`border bg-white p-2 rounded w-full ${isEditable ? 'border-neutral-900' : 'bg-gray-100'}`}
-              />
+              >
+                <option value="">--Select type of shop--</option>
+                <option value="Franchise">Franchise</option>
+                <option value="Tea Stall">Tea Stall</option>
+                <option value="Restaurant">Restaurant</option>
+                <option value="Florist">Florist</option>
+                <option value="Auto Parts">Auto Parts</option>
+                <option value="Bakery">Bakery</option>
+                <option value="Cafe">Cafe</option>
+                <option value="Auto Repair">Auto Repair</option>
+                <option value="Paan Shop">Paan Shop</option>
+                <option value="Vegetable Shop">Vegetable Shop</option>
+                <option value="Pharmacy">Pharmacy</option>
+                <option value="Jewelry">Jewelry</option>
+                <option value="Cycle Repair Shop">Cycle Repair Shop</option>
+                <option value="Sweet Shop">Sweet Shop</option>
+                <option value="Pet Shop">Pet Shop</option>
+                <option value="Furniture Store">Furniture Store</option>
+                <option value="Dry Cleaner">Dry Cleaner</option>
+                <option value="Gym">Gym</option>
+                <option value="Stationery Shop">Stationery Shop</option>
+                <option value="Convenience Shop">Convenience Shop</option>
+                <option value="Mobile Repair Shop">Mobile Repair Shop</option>
+                <option value="Electronics Shop">Electronics Shop</option>
+                <option value="Salon">Salon</option>
+                <option value="Tailor">Tailor</option>
+                <option value="Electronics Repair Shop">Electronics Repair Shop</option>
+                <option value="Spare Parts Dealer">Spare Parts Dealer</option>
+                <option value="Photo Studio">Photo Studio</option>
+                <option value="Toy Shop">Toy Shop</option>
+                <option value="Bicycle Shop">Bicycle Shop</option>
+                <option value="Textile Shop">Textile Shop</option>
+                <option value="others">Others</option>
+              </select>
+              {isOtherShop && (
+                <div className="mt-2">
+                  <label className="block mb-1">Specify Shop Type</label>
+                  <input
+                    name="otherShopType"
+                    type="text"
+                    value={details.otherShopType}
+                    onChange={handleChange}
+                    disabled={!isEditable}
+                    className={`border p-2 rounded w-full ${isEditable ? 'border-neutral-900' : 'bg-gray-100'}`}
+                  />
+                  {errors.otherShopType && <p className="text-red-500 text-sm">{errors.otherShopType}</p>}
+                </div>
+              )}
             </div>
             <div>
               <label className="block mb-1">Shop Address</label>

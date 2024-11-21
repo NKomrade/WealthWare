@@ -210,17 +210,29 @@ const Inventory = () => {
       console.error('No user logged in.');
       return;
     }
+  
     try {
-      // Save PO data to Firebase
       await addDoc(collection(db, `users/${user.uid}/purchaseOrders`), poData);
+  
+      // Update local state
       setPurchaseOrders([...purchaseOrders, poData]);
   
-      // Generate the PDF and open the print dialog
-      generatePDF(poData); 
+      // Reset form and close modal
+      setPoData({
+        poId: `PO-${Math.floor(1000 + Math.random() * 9000)}`,
+        companyName: '',
+        supplierAddress: '',
+        state: '',
+        items: [{ brandName: '', brandProduct: '', quantity: '', costPrice: '' }],
+      });
+      setShowPOModal(false);
+  
+      // Generate the PDF (if required)
+      generatePDF(poData);
     } catch (error) {
       console.error('Error adding purchase order: ', error);
     }
-  };
+  };  
   
   const handleView = async (poId) => {
     try {
@@ -373,27 +385,33 @@ const Inventory = () => {
   
     try {
       if (editProductId) {
-        // Get the existing product and calculate new quantity
+        // Update existing product
         const existingProduct = products.find((product) => product.id === editProductId);
         const newQuantity = parseInt(existingProduct.quantity) + parseInt(productData.quantity);
   
-        // Update the product in Firestore with new data, adding the quantities
         const productRef = doc(db, `users/${user.uid}/products`, editProductId);
         await updateDoc(productRef, {
           ...productData,
-          quantity: newQuantity, // Sum of prior and new quantity
+          quantity: newQuantity,
         });
   
-        // Update local state to reflect changes immediately in UI
+        // Update local state
         setProducts(products.map((product) =>
           product.id === editProductId ? { ...productData, quantity: newQuantity, id: editProductId } : product
         ));
+        setFilteredInv(filteredInv.map((product) =>
+          product.id === editProductId ? { ...productData, quantity: newQuantity, id: editProductId } : product
+        ));
   
-        setEditProductId(null); // Reset after updating
+        setEditProductId(null);
       } else {
-        // Add a new product if it doesn't exist
+        // Add new product
         const docRef = await addDoc(collection(db, `users/${user.uid}/products`), productData);
-        setProducts([...products, { ...productData, id: docRef.id }]); // Update local state directly
+        const newProduct = { ...productData, id: docRef.id };
+  
+        // Update local state
+        setProducts([...products, newProduct]);
+        setFilteredInv([...filteredInv, newProduct]);
       }
   
       // Reset form and close modal
@@ -410,7 +428,7 @@ const Inventory = () => {
     } catch (error) {
       console.error('Error adding or updating product: ', error);
     }
-  };
+  };  
   
   const handleEdit = (product) => {
     setProductData(product);
