@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { collection, addDoc, getDocs, deleteDoc, doc, updateDoc, query, where } from 'firebase/firestore';
-import { getAuth, onAuthStateChanged } from 'firebase/auth';
+import { collection, addDoc, getDocs, deleteDoc, doc, updateDoc, getDoc } from 'firebase/firestore';
+import { getAuth, onAuthStateChanged, EmailAuthProvider, reauthenticateWithCredential } from 'firebase/auth';
 import { db } from '../firebase';
 
 const Inventory = () => {
@@ -13,6 +13,11 @@ const Inventory = () => {
   const [poSearchQuery, setPoSearchQuery] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [currentPOPage, setCurrentPOPage] = useState(1);
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [password, setPassword] = useState(''); // User-entered password
+  const [setCorrectPassword] = useState(null); // Fetched password
+  const [selectedAction, setSelectedAction] = useState(null); // Tracks "edit" or "delete"
+  const [selectedProduct, setSelectedProduct] = useState(null); // Product being edited or deleted
   const itemsPerPage = 5;
   const [productData, setProductData] = useState({
     skuId: '',
@@ -21,17 +26,16 @@ const Inventory = () => {
     price: '',
     quantity: '',
     description: '',
-    purchaseDate: '',
   });
   const [editProductId, setEditProductId] = useState(null); // Track if editing a product
 
   const [poData, setPoData] = useState({
-    poId: `PO-${Math.floor(1000 + Math.random() * 9000)}`,
+    poId: '', 
     companyName: '',
     supplierAddress: '',
     state: '',
     items: [{ brandName: '', brandProduct: '', quantity: '', costPrice: '' }],
-  });
+  });   
 
   const auth = getAuth();
   const [user, setUser] = useState(null);
@@ -87,10 +91,19 @@ const Inventory = () => {
         console.warn('No user is currently logged in.');
       }
     });
-
+  
     return () => unsubscribe();
-  }, []);
+  }, [auth]); // Add `auth` to the dependency array  
 
+  useEffect(() => {
+    if (user) {
+      fetchUserPassword().then((password) => {
+        setCorrectPassword(password); // Store the fetched password for validation
+      });
+    }
+  }, [user]);  
+
+  
   const fetchProducts = async (currentUser) => {
     try {
       const productsRef = collection(db, `users/${currentUser.uid}/products`);
@@ -103,6 +116,28 @@ const Inventory = () => {
     }
   };
 
+  const fetchUserPassword = async () => {
+    try {
+      if (!user || !user.uid) {
+        console.error('User is not logged in or UID is missing.');
+        return null;
+      }
+  
+      const userDocRef = doc(db, 'users', user.uid); // Reference the user's document
+      const userDocSnap = await getDoc(userDocRef);
+  
+      if (userDocSnap.exists()) {
+        return userDocSnap.data().actionPassword || null; // Fetch the action password field
+      } else {
+        console.error('User document does not exist.');
+        return null;
+      }
+    } catch (error) {
+      console.error('Error fetching password:', error);
+      return null;
+    }
+  };
+  
   const fetchPurchaseOrders = async (currentUser) => {
     try {
       const poRef = collection(db, `users/${currentUser.uid}/purchaseOrders`);
@@ -154,6 +189,42 @@ const Inventory = () => {
   };
 
   useEffect(() => {
+    const fetchNextSkuId = async () => {
+      if (!user) {
+        console.error("No user logged in.");
+        return;
+      }
+  
+      try {
+        const productsRef = collection(db, `users/${user.uid}/products`);
+        const querySnapshot = await getDocs(productsRef);
+  
+        // Extract and parse all numeric SKU IDs, removing the "SKU-" prefix
+        const skus = querySnapshot.docs
+          .map((doc) => doc.data().skuId?.replace("SKU-", "")) // Remove prefix
+          .map((sku) => parseInt(sku, 10)) // Convert to number
+          .filter((sku) => !isNaN(sku)); // Filter out invalid or NaN values
+  
+        // Find the maximum SKU ID or fallback to 0
+        const maxSku = skus.length > 0 ? Math.max(...skus) : 0;
+  
+        // Increment max SKU and format it as a 9-digit number with the "SKU-" prefix
+        const nextSku = `SKU-${(maxSku + 1).toString().padStart(9, "0")}`;
+  
+        // Set the next SKU in product data
+        setProductData((prevData) => ({
+          ...prevData,
+          skuId: nextSku,
+        }));
+      } catch (error) {
+        console.error("Error generating next SKU ID: ", error);
+        setProductData((prevData) => ({
+          ...prevData,
+          skuId: "SKU-000000001", // Fallback SKU
+        }));
+      }
+    };
+  
     if (productData.companyName && productData.name) {
       const existingProduct = products.find(
         (product) =>
@@ -162,30 +233,25 @@ const Inventory = () => {
       );
   
       if (existingProduct) {
-        // Populate product data with existing details, but leave quantity blank for new input
+        // Populate product data with existing details, including the same SKU ID
         setProductData((prevData) => ({
           ...prevData,
           skuId: existingProduct.skuId,
           price: existingProduct.price,
           description: existingProduct.description,
-          purchaseDate: existingProduct.purchaseDate,
           quantity: '', // Leave quantity empty for user input
         }));
         setIsExistingSKU(true);
         setEditProductId(existingProduct.id); // Use existing product ID to trigger an update
       } else {
-        setProductData((prevData) => ({
-          ...prevData,
-          skuId: `SKU-${Math.floor(1000 + Math.random() * 9000)}`,
-        }));
         setIsExistingSKU(false);
         setEditProductId(null); // Reset if no existing product found
+        fetchNextSkuId(); // Fetch the next sequential SKU ID
       }
     }
-  }, [productData.companyName, productData.name, products]);
+  }, [productData.companyName, productData.name, products, user]);  
   
   const openModal = () => {
-    const todayDate = new Date().toISOString().split('T')[0];
     setProductData({
       skuId: '', // Reset SKU ID to be empty each time the modal opens
       name: '',
@@ -193,47 +259,123 @@ const Inventory = () => {
       price: '',
       quantity: '',
       description: '',
-      purchaseDate: todayDate,
     });
     setIsExistingSKU(false);
     setEditProductId(null);
     setShowModal(true);
   };  
 
+  const openEditModal = (product) => {
+    setProductData({
+      skuId: product.skuId,
+      name: product.name,
+      companyName: product.companyName,
+      price: product.price,
+      quantity: product.quantity,
+      description: product.description,
+    });
+    setEditProductId(product.id); // Set the ID for tracking the edit operation
+    setIsExistingSKU(true); // Indicate that this SKU already exists
+    setShowModal(true); // Open the modal
+  };  
+
   const closeModal = () => setShowModal(false);
-  const openPOModal = () => setShowPOModal(true);
+  
+  const openPOModal = async () => {
+    if (!user) {
+      console.error("No user logged in.");
+      return;
+    }
+  
+    try {
+      const poRef = collection(db, `users/${user.uid}/purchaseOrders`);
+      const querySnapshot = await getDocs(poRef);
+  
+      // Extract and parse all numeric PO IDs, removing the "PO-" prefix
+      const poIds = querySnapshot.docs
+        .map((doc) => doc.data().poId?.replace("PO-", "")) // Remove "PO-" prefix
+        .map((id) => parseInt(id, 10)) // Convert to integer
+        .filter((id) => !isNaN(id)); // Filter out invalid or NaN values
+  
+      // Find the maximum PO ID or fallback to 0
+      const maxPoId = poIds.length > 0 ? Math.max(...poIds) : 0;
+  
+      // Generate the next PO ID
+      const nextPoId = `PO-${(maxPoId + 1).toString().padStart(9, "0")}`;
+  
+      // Set the PO ID and open the modal
+      setPoData((prevData) => ({
+        ...prevData,
+        poId: nextPoId,
+      }));
+      setShowPOModal(true); // Open the modal
+    } catch (error) {
+      console.error("Error generating PO-ID: ", error);
+  
+      // Fallback for first PO ID if an error occurs
+      setPoData((prevData) => ({
+        ...prevData,
+        poId: 'PO-000000001',
+      }));
+      setShowPOModal(true); // Open the modal
+    }
+  };  
+
   const closePOModal = () => setShowPOModal(false);
 
   const handlePOSubmit = async (e) => {
     e.preventDefault();
     if (!user) {
-      console.error('No user logged in.');
+      console.error("No user logged in.");
       return;
     }
   
     try {
-      await addDoc(collection(db, `users/${user.uid}/purchaseOrders`), poData);
+      // Reference the purchase orders collection
+      const poRef = collection(db, `users/${user.uid}/purchaseOrders`);
+      
+      // Get all existing purchase orders to calculate the next PO-ID
+      const querySnapshot = await getDocs(poRef);
+      
+      // Extract and parse all numeric PO IDs, removing the "PO-" prefix
+      const poIds = querySnapshot.docs
+        .map((doc) => doc.data().poId?.replace("PO-", "")) // Remove prefix
+        .map((id) => parseInt(id, 10)) // Convert to number
+        .filter((id) => !isNaN(id)); // Filter out invalid or NaN values
   
-      // Update local state
-      setPurchaseOrders([...purchaseOrders, poData]);
+      // Find the maximum PO ID or fallback to 0 for the first PO
+      const maxPoId = poIds.length > 0 ? Math.max(...poIds) : 0;
+  
+      // Increment max PO ID and format it as a 9-digit number with the "PO-" prefix
+      const nextPoId = `PO-${(maxPoId + 1).toString().padStart(9, "0")}`;
+  
+      // Prepare the PO data with the calculated next PO ID
+      const newPoData = { ...poData, poId: nextPoId };
+  
+      // Save the new purchase order to Firestore
+      await addDoc(poRef, newPoData);
+  
+      // Update local state with the new purchase order
+      setPurchaseOrders([...purchaseOrders, newPoData]);
   
       // Reset form and close modal
       setPoData({
-        poId: `PO-${Math.floor(1000 + Math.random() * 9000)}`,
-        companyName: '',
-        supplierAddress: '',
-        state: '',
-        items: [{ brandName: '', brandProduct: '', quantity: '', costPrice: '' }],
+        poId: "", // Clear for the next use (will be recalculated)
+        companyName: "",
+        supplierAddress: "",
+        state: "",
+        items: [{ brandName: "", brandProduct: "", quantity: "", costPrice: "" }],
       });
       setShowPOModal(false);
   
       // Generate the PDF (if required)
-      generatePDF(poData);
+      generatePDF(newPoData);
     } catch (error) {
-      console.error('Error adding purchase order: ', error);
+      console.error("Error adding purchase order: ", error);
+      alert("An error occurred while generating the PO. Please try again.");
     }
   };  
-  
+
   const handleView = async (poId) => {
     try {
       const poRef = collection(db, `users/${user.uid}/purchaseOrders`);
@@ -257,24 +399,32 @@ const Inventory = () => {
       console.error('No user logged in.');
       return;
     }
+  
     try {
       // Reference to the purchase orders collection
       const poRef = collection(db, `users/${user.uid}/purchaseOrders`);
+      
+      // Query the Firestore collection to find the document with the matching poId
       const querySnapshot = await getDocs(poRef);
       const docToDelete = querySnapshot.docs.find((doc) => doc.data().poId === poId);
   
       if (docToDelete) {
-        await deleteDoc(docToDelete.ref); // Use deleteDoc() from Firestore
+        // Delete the document using its Firestore document reference
+        await deleteDoc(doc(db, `users/${user.uid}/purchaseOrders`, docToDelete.id));
+        
         // Update the state to reflect the change in UI
-        setPurchaseOrders(purchaseOrders.filter((po) => po.poId !== poId));
+        setPurchaseOrders((prev) => prev.filter((po) => po.poId !== poId));
+  
         alert('Purchase order deleted successfully!');
       } else {
         console.warn('No matching purchase order found.');
+        alert('No matching purchase order found.');
       }
     } catch (error) {
       console.error('Error deleting purchase order:', error);
+      alert('An error occurred while deleting the purchase order. Please try again.');
     }
-  };    
+  };      
   
   const generatePDF = (poData) => {
     const { poId, companyName, supplierAddress, state, items } = poData;
@@ -422,7 +572,6 @@ const Inventory = () => {
         price: '',
         quantity: '',
         description: '',
-        purchaseDate: '',
       });
       setShowModal(false);
     } catch (error) {
@@ -430,39 +579,40 @@ const Inventory = () => {
     }
   };  
   
-  const handleEdit = (product) => {
-    setProductData(product);
-    setEditProductId(product.id); // Set the product ID to edit
-    setIsExistingSKU(true); // SKU ID is pre-existing and should appear in green
-    setShowModal(true);
-  };
-
-  const handleProductDelete = async (skuId) => {
-    if (!user) {
-      console.error('No user logged in.');
-      return;
-    }
+  const handleEdit = async (product) => {
+    setSelectedAction("edit"); 
+    setSelectedProduct(product);
+    setShowPasswordModal(true); 
+  };       
   
+  const handlePasswordSubmit = async () => {
     try {
-      const productsRef = collection(db, `users/${user.uid}/products`);
-      const q = query(productsRef, where("skuId", "==", skuId));
-      const querySnapshot = await getDocs(q);
-  
-      if (!querySnapshot.empty) {
-        const docRef = querySnapshot.docs[0].ref;
-        await deleteDoc(docRef);
-  
-        // Fetch products after deleting
-        fetchProducts(user); // Refreshes products to update the UI
-        alert('Product deleted successfully!');
-      } else {
-        console.error('No product found with the specified SKU ID.');
+      if (!user) {
+        alert("User not logged in.");
+        return;
       }
+  
+      // Create a credential object using the user's email and entered password
+      const credential = EmailAuthProvider.credential(user.email, password);
+  
+      // Reauthenticate the user
+      await reauthenticateWithCredential(user, credential);
+      alert("Correct Password! Can edit the product details now.");
+  
+      setShowPasswordModal(false); // Close the password modal
+      setPassword(""); // Clear the password input
+  
+      // Perform the action after successful reauthentication
+      if (selectedAction === "edit") {
+        openEditModal(selectedProduct); // Call the delete product function
+      } 
     } catch (error) {
-      console.error('Error deleting product: ', error);
+      console.error("Incorrect Password:", error);
+      alert("Please check your password and try again.");
+      setPassword(""); // Clear the input
     }
-  };    
-
+  };
+  
   return (
     <div className="p-8">
       <h2 className="text-2xl font-bold mb-4">Inventory Management</h2>
@@ -481,10 +631,9 @@ const Inventory = () => {
           <input
             type="text"
             placeholder="Search Inventory..."
-            className="border px-2 py-1 rounded"
+            className="border px-2 py-1 w-100% rounded"
             onChange={(e) => handleSearch(e.target.value)}
           />
-          <button className="bg-blue-500 text-white px-4 py-1 rounded">Search</button>
         </div>
       </div>
       <table className="w-full mt-4 border-collapse border border-gray-400">
@@ -496,7 +645,6 @@ const Inventory = () => {
             <th className="border border-gray-300 p-2">Selling Price</th>
             <th className="border border-gray-300 p-2">Quantity</th>
             <th className="border border-gray-300 p-2">Description</th>
-            <th className="border border-gray-300 p-2">Purchase Date</th>
             <th className="border border-gray-300 p-2">Actions</th>
           </tr>
         </thead>
@@ -510,7 +658,6 @@ const Inventory = () => {
                 <td className="border border-gray-300 p-2">₹ {product.price}</td>
                 <td className="border border-gray-300 p-2">{product.quantity}</td>
                 <td className="border border-gray-300 p-2">{product.description}</td>
-                <td className="border border-gray-300 p-2">{product.purchaseDate}</td>
                 <td className="border border-gray-300 p-2">
                   <div className="flex justify-center space-x-2">
                     <button
@@ -518,12 +665,6 @@ const Inventory = () => {
                       className="bg-blue-500 text-white px-2 py-1 rounded mr-4"
                     >
                       Edit
-                    </button>
-                    <button
-                      onClick={() => handleProductDelete(product.skuId)}
-                      className="bg-red-500 text-white px-2 py-1 rounded"
-                    >
-                      Delete
                     </button>
                   </div>
                 </td>
@@ -567,11 +708,10 @@ const Inventory = () => {
           <input
             type="text"
             placeholder="Search Purchase Orders..."
-            className="border px-2 py-1 rounded"
+            className="border px-2 py-1 w-100% rounded"
             value={poSearchQuery}
             onChange={(e) => setPoSearchQuery(e.target.value)}
           />
-          <button className="bg-blue-500 text-white px-4 py-1 rounded">Search</button>
         </div>
       </div>
       <table className="w-full mt-4 border-collapse border border-gray-400">
@@ -648,18 +788,6 @@ const Inventory = () => {
           <div className="bg-white p-6 rounded-lg w-1/3">
             <h2 className="text-2xl mb-4">{editProductId ? 'Edit Inventory' : 'Add Inventory'}</h2>
             <form onSubmit={handleSubmit} className="grid grid-cols-2 gap-4">
-              {/* Purchase Date */}
-              <div className="col-span-2">
-                <label className="block mb-2">Purchase Date</label>
-                <input
-                  type="date"
-                  name="purchaseDate"
-                  value={productData.purchaseDate}
-                  onChange={handleChange}
-                  className="border w-full p-2 bg-gray-100"
-                />
-              </div>
-
               {/* Brand Name */}
               <div>
                 <label className="block mb-2">Brand Name</label>
@@ -756,6 +884,38 @@ const Inventory = () => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {showPasswordModal && (
+        <div className="fixed top-0 left-0 w-full h-full flex items-center justify-center bg-gray-900 bg-opacity-50">
+          <div className="bg-white p-6 rounded-lg w-1/3">
+            <h2 className="text-xl font-semibold mb-4">Enter Password</h2>
+            <input
+              type="password"
+              placeholder="Enter Password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="border w-full p-2 mb-4"
+            />
+            <div className="flex justify-end">
+              <button
+                onClick={() => {
+                  setShowPasswordModal(false);
+                  setPassword("");
+                }}
+                className="bg-red-500 text-white px-4 py-2 rounded mr-2"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handlePasswordSubmit}
+                className="bg-blue-500 text-white px-4 py-2 rounded"
+              >
+                Submit
+              </button>
+            </div>
           </div>
         </div>
       )}

@@ -425,7 +425,7 @@ const Invoices = () => {
   
           <div>
             <p className="text-sm font-medium text-gray-700">Subtotal: ₹{subtotal.toFixed(2)}</p>
-            <p className="text-sm font-medium text-gray-700">Tax (18%): ₹{tax.toFixed(2)}</p>
+            <p className="text-sm font-medium text-gray-700">Tax ({tax}%): ₹{tax.toFixed(2)}</p>
             <p className="text-sm font-medium text-gray-700">Discount: {discount}%</p>
             <p className="text-sm font-medium text-gray-700">Total Amount: ₹{total.toFixed(2)}</p>
           </div>
