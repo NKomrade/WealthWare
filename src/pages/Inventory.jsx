@@ -275,9 +275,9 @@ const Inventory = () => {
       description: product.description,
     });
     setEditProductId(product.id); // Set the ID for tracking the edit operation
-    setIsExistingSKU(true); // Indicate that this SKU already exists
     setShowModal(true); // Open the modal
-  };  
+  };
+       
 
   const closeModal = () => setShowModal(false);
   
@@ -303,10 +303,11 @@ const Inventory = () => {
       // Generate the next PO ID
       const nextPoId = `PO-${(maxPoId + 1).toString().padStart(9, "0")}`;
   
-      // Set the PO ID and open the modal
+      // Set the PO ID, default date, and open the modal
       setPoData((prevData) => ({
         ...prevData,
         poId: nextPoId,
+        purchaseDate: new Date().toISOString().split("T")[0], // Set today's date
       }));
       setShowPOModal(true); // Open the modal
     } catch (error) {
@@ -315,12 +316,13 @@ const Inventory = () => {
       // Fallback for first PO ID if an error occurs
       setPoData((prevData) => ({
         ...prevData,
-        poId: 'PO-000000001',
+        poId: "PO-000000001",
+        purchaseDate: new Date().toISOString().split("T")[0], // Set today's date
       }));
       setShowPOModal(true); // Open the modal
     }
-  };  
-
+  };
+  
   const closePOModal = () => setShowPOModal(false);
 
   const handlePOSubmit = async (e) => {
@@ -331,51 +333,29 @@ const Inventory = () => {
     }
   
     try {
-      // Reference the purchase orders collection
+      const newPoData = {
+        ...poData,
+        purchaseDate: poData.purchaseDate || new Date().toISOString().split("T")[0], // Use today's date if not set
+      };
+  
+      // Save to Firestore
       const poRef = collection(db, `users/${user.uid}/purchaseOrders`);
-      
-      // Get all existing purchase orders to calculate the next PO-ID
-      const querySnapshot = await getDocs(poRef);
-      
-      // Extract and parse all numeric PO IDs, removing the "PO-" prefix
-      const poIds = querySnapshot.docs
-        .map((doc) => doc.data().poId?.replace("PO-", "")) // Remove prefix
-        .map((id) => parseInt(id, 10)) // Convert to number
-        .filter((id) => !isNaN(id)); // Filter out invalid or NaN values
-  
-      // Find the maximum PO ID or fallback to 0 for the first PO
-      const maxPoId = poIds.length > 0 ? Math.max(...poIds) : 0;
-  
-      // Increment max PO ID and format it as a 9-digit number with the "PO-" prefix
-      const nextPoId = `PO-${(maxPoId + 1).toString().padStart(9, "0")}`;
-  
-      // Prepare the PO data with the calculated next PO ID
-      const newPoData = { ...poData, poId: nextPoId };
-  
-      // Save the new purchase order to Firestore
       await addDoc(poRef, newPoData);
   
-      // Update local state with the new purchase order
+      // Update state
       setPurchaseOrders([...purchaseOrders, newPoData]);
   
-      // Reset form and close modal
-      setPoData({
-        poId: "", // Clear for the next use (will be recalculated)
-        companyName: "",
-        supplierAddress: "",
-        state: "",
-        items: [{ brandName: "", brandProduct: "", quantity: "", costPrice: "" }],
-      });
+      // Close the Generate PO modal
       setShowPOModal(false);
   
-      // Generate the PDF (if required)
+      // Automatically redirect to the generated purchase order (PDF view)
       generatePDF(newPoData);
     } catch (error) {
       console.error("Error adding purchase order: ", error);
       alert("An error occurred while generating the PO. Please try again.");
     }
-  };  
-
+  };
+  
   const handleView = async (poId) => {
     try {
       const poRef = collection(db, `users/${user.uid}/purchaseOrders`);
@@ -427,7 +407,7 @@ const Inventory = () => {
   };      
   
   const generatePDF = (poData) => {
-    const { poId, companyName, supplierAddress, state, items } = poData;
+    const { poId, companyName, supplierAddress, state, items, purchaseDate } = poData;
     const subtotal = items.reduce((acc, item) => acc + item.quantity * item.costPrice, 0);
     const tax = subtotal * 0.18;
     const total = subtotal + tax;
@@ -448,7 +428,7 @@ const Inventory = () => {
                   <h1 class="text-3xl font-bold">Purchase Order</h1>
                   <div class="text-right space-y-1">
                       <p><span class="font-semibold">PO ID:</span> ${poId}</p>
-                      <p class="ml-2"><span class="font-semibold">Date:</span> ${new Date().toLocaleDateString()}</p>
+                      <p><span class="font-semibold">Date:</span> ${purchaseDate || "N/A"}</p>
                   </div>
               </div>
               <p><span class="font-semibold">Company Name:</span> ${companyName}</p>
@@ -476,95 +456,70 @@ const Inventory = () => {
                           </tr>`).join('')}
                   </tbody>
               </table>
-
+  
               <div class="total text-right mt-4 space-y-1">
                   <p><span class="font-semibold">Subtotal:</span> ₹${subtotal.toFixed(2)}</p>
                   <p><span class="font-semibold">Tax (18%):</span> ₹${tax.toFixed(2)}</p>
                   <p><span class="font-semibold text-lg">Total:</span> ₹${total.toFixed(2)}</p>
               </div>
           </div>
-
-          <!-- Print Button -->
-          <div class="print-button text-center mt-6">
-              <button onclick="printPDF()" class="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600">
-                  Print / Save as PDF
-              </button>
-          </div>
-
+  
           <script>
               function printPDF() {
-                  window.print(); // Opens the print dialog for print or save as PDF
+                  window.print();
               }
           </script>
-
+  
           <style>
               @media print {
-                  .print-button {
-                      display: none; /* Hide print button on print */
-                  }
-
-                  body {
-                      -webkit-print-color-adjust: exact; /* Ensure colors are printed accurately */
-                      margin: 0;
-                      padding: 0;
-                  }
-
                   .po-container {
-                      width: 100%; /* Utilize full width for print */
                       border: none;
-                  }
-
-                  /* Set page orientation to portrait */
-                  @page {
-                      size: A4 portrait; /* Set A4 paper size in portrait orientation */
-                      margin: 20mm;
                   }
               }
           </style>
       </body>
       </html>
     `);
-  };      
+  };         
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!user) {
-      console.error('No user logged in.');
+      console.error("No user logged in.");
       return;
     }
   
     try {
       if (editProductId) {
-        // Update existing product
-        const existingProduct = products.find((product) => product.id === editProductId);
-        const newQuantity = parseInt(existingProduct.quantity) + parseInt(productData.quantity);
-  
+        // Update the product in Firestore
         const productRef = doc(db, `users/${user.uid}/products`, editProductId);
-        await updateDoc(productRef, {
-          ...productData,
-          quantity: newQuantity,
-        });
+        await updateDoc(productRef, productData);
   
-        // Update local state
-        setProducts(products.map((product) =>
-          product.id === editProductId ? { ...productData, quantity: newQuantity, id: editProductId } : product
-        ));
-        setFilteredInv(filteredInv.map((product) =>
-          product.id === editProductId ? { ...productData, quantity: newQuantity, id: editProductId } : product
-        ));
+        // Update the product in the local state
+        setProducts((prevProducts) =>
+          prevProducts.map((product) =>
+            product.id === editProductId ? { ...product, ...productData } : product
+          )
+        );
+        setFilteredInv((prevFiltered) =>
+          prevFiltered.map((product) =>
+            product.id === editProductId ? { ...product, ...productData } : product
+          )
+        );
   
-        setEditProductId(null);
+        alert("Product updated successfully!");
+        setEditProductId(null); // Clear edit ID
       } else {
-        // Add new product
+        // Add a new product if no edit ID exists
         const docRef = await addDoc(collection(db, `users/${user.uid}/products`), productData);
         const newProduct = { ...productData, id: docRef.id };
   
         // Update local state
-        setProducts([...products, newProduct]);
-        setFilteredInv([...filteredInv, newProduct]);
+        setProducts((prevProducts) => [...prevProducts, newProduct]);
+        setFilteredInv((prevFiltered) => [...prevFiltered, newProduct]);
       }
   
-      // Reset form and close modal
+      // Reset the form and close the modal
       setProductData({
         skuId: '',
         name: '',
@@ -573,17 +528,17 @@ const Inventory = () => {
         quantity: '',
         description: '',
       });
-      setShowModal(false);
+      setShowModal(false); // Close the modal
     } catch (error) {
-      console.error('Error adding or updating product: ', error);
+      console.error("Error saving product: ", error);
     }
-  };  
+  };      
   
   const handleEdit = async (product) => {
     setSelectedAction("edit"); 
     setSelectedProduct(product);
     setShowPasswordModal(true); 
-  };       
+  };
   
   const handlePasswordSubmit = async () => {
     try {
@@ -597,21 +552,21 @@ const Inventory = () => {
   
       // Reauthenticate the user
       await reauthenticateWithCredential(user, credential);
-      alert("Correct Password! Can edit the product details now.");
+      alert("Correct Password! You can edit the product details now.");
   
       setShowPasswordModal(false); // Close the password modal
       setPassword(""); // Clear the password input
   
       // Perform the action after successful reauthentication
       if (selectedAction === "edit") {
-        openEditModal(selectedProduct); // Call the delete product function
-      } 
+        openEditModal(selectedProduct);
+      }
     } catch (error) {
       console.error("Incorrect Password:", error);
       alert("Please check your password and try again.");
       setPassword(""); // Clear the input
     }
-  };
+  };  
   
   return (
     <div className="p-8">
@@ -718,6 +673,7 @@ const Inventory = () => {
         <thead className="bg-black text-white">
           <tr>
             <th className="border border-gray-300 p-2">PO ID</th>
+            <th className="border border-gray-300 p-2">Purchase Date</th>
             <th className="border border-gray-300 p-2">Company Name</th>
             <th className="border border-gray-300 p-2">Supplier Address</th>
             <th className="border border-gray-300 p-2">State</th>
@@ -729,6 +685,7 @@ const Inventory = () => {
             paginatedPurchaseOrders.map((po, index) => (
               <tr key={index}>
                 <td className="border border-gray-300 p-2">{po.poId}</td>
+                <td className="border border-gray-300 p-2">{po.purchaseDate}</td>
                 <td className="border border-gray-300 p-2">{po.companyName}</td>
                 <td className="border border-gray-300 p-2">{po.supplierAddress}</td>
                 <td className="border border-gray-300 p-2">{po.state}</td>
@@ -925,6 +882,15 @@ const Inventory = () => {
           <div className="bg-white p-6 rounded-lg w-1/2">
             <h2 className="text-2xl mb-4">Generate Purchase Order</h2>
             <form onSubmit={handlePOSubmit} className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block mb-2">Purchase Date</label>
+                <input
+                  className="border p-2 w-full"
+                  type="date"
+                  value={poData.purchaseDate}
+                  onChange={(e) => setPoData({ ...poData, purchaseDate: e.target.value })}
+                />
+              </div>
               <div>
                 <label className="block mb-2">PO ID</label>
                 <input className="border p-2 w-full bg-gray-100" value={poData.poId} readOnly />

@@ -257,9 +257,20 @@ const Invoices = () => {
   
   // Updated generatePDF function
   const generatePDF = (invoice) => {
-    const { invoiceID, customerName, customerAddress, items, subtotal, tax, total } = invoice;
+    const {
+      invoiceID,
+      customerName,
+      customerAddress,
+      items,
+      subtotal,
+      tax,
+      total,
+      discount, // Fetch discount directly from the database
+      date, // Fetch the date directly from the database
+    } = invoice;
+  
     const discountAmount = (subtotal + tax) * (discount / 100);
-
+  
     const htmlContent = `
       <!DOCTYPE html>
       <html lang="en">
@@ -275,7 +286,7 @@ const Invoices = () => {
               <h1 class="text-3xl font-bold">Invoice</h1>
               <div class="text-right space-y-1">
                 <p><span class="font-semibold">Invoice ID:</span> ${invoiceID}</p>
-                <p class="ml-2"><span class="font-semibold">Date:</span> ${new Date().toLocaleDateString()}</p>
+                <p class="ml-2"><span class="font-semibold">Date:</span> ${date || "N/A"}</p> <!-- Fetch date from database -->
               </div>
             </div>
             <p><span class="font-semibold">Customer Name:</span> ${customerName}</p>
@@ -304,11 +315,11 @@ const Invoices = () => {
                   .join("")}
               </tbody>
             </table>
-
+  
             <div class="total text-right mt-4 space-y-1">
               <p><span class="font-semibold">Subtotal:</span> ₹${subtotal.toFixed(2)}</p>
               <p><span class="font-semibold">Tax (${tax}%):</span> ₹${(subtotal * (tax / 100)).toFixed(2)}</p>
-              <p><span class="font-semibold">Discount (${discount}%):</span> -₹${discountAmount.toFixed(2)}</p>
+              <p><span class="font-semibold">Discount (${discount}%):</span> -₹${discountAmount.toFixed(2)}</p> <!-- Fetch discount from database -->
               <p><span class="font-semibold text-lg">Total Amount:</span> ₹${total.toFixed(2)}</p>
             </div>
           </div>
@@ -319,14 +330,14 @@ const Invoices = () => {
           </div>
         </body>
       </html>
-      `;
+    `;
   
     // Open a new window and write the PDF content to it
     const newWindow = window.open("", "_blank");
     newWindow.document.write(htmlContent);
     newWindow.document.close();
-  };         
-
+  };
+  
   return (
     <div className="flex flex-row space-x-4 p-6 bg-white shadow-lg rounded-lg">
       {/* Left Section - Invoice Form */}
