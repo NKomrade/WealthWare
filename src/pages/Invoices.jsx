@@ -17,6 +17,7 @@ const Invoices = () => {
   const [invoiceID] = useState(`INV-${Date.now()}`);
   const [paymentMethod, setPaymentMethod] = useState("");
   const [showInvoiceModal, setShowInvoiceModal] = useState(false);
+  const [newProduct, setNewProduct] = useState({ productId: "", quantity: 1 });
 
   const auth = getAuth();
   const user = auth.currentUser;
@@ -44,7 +45,7 @@ const Invoices = () => {
         }
       }
     };
-
+    
     const fetchInvoices = async () => {
       if (user) {
         try {
@@ -71,106 +72,73 @@ const Invoices = () => {
 
   // Calculate subtotal, tax, and total whenever selected items change
   useEffect(() => {
-    const newSubtotal = selectedItems.reduce((acc, item) => {
-      if (item.product) {
-        return acc + item.product.price * item.quantity;
-      }
-      return acc;
-    }, 0);
+    // Recalculate tax and discount based on the updated subtotal
+    const taxAmount = subtotal * (tax / 100);
+    const discountAmount = subtotal * (discount / 100);
   
-    const taxAmount = newSubtotal * (tax / 100);
-    const discountAmount = (newSubtotal + taxAmount) * (discount / 100); // Calculate discount based on total
+    setTotal(subtotal + taxAmount - discountAmount);
+  }, [subtotal, tax, discount]);
   
-    // Set subtotal, tax, and total directly
-    setSubtotal(newSubtotal);
-    setTotal(newSubtotal + taxAmount - discountAmount); // Update total directly with discount applied
-  }, [selectedItems, tax, discount]);
-  
-
   const handleAddProduct = () => {
-    setSelectedItems([...selectedItems, { product: null, quantity: 1 }]);
-  };
-
-  const handleRemoveProduct = (index) => {
-    const updatedItems = [...selectedItems];
-    updatedItems.splice(index, 1);
-    setSelectedItems(updatedItems);
-  };
-
-  const handleProductChange = async (index, skuId) => {
-    const selectedProductDoc = await searchProductById(skuId);
-    if (!selectedProductDoc) return;
+    const selectedProduct = products.find((p) => p.id === newProduct.productId);
   
-    const selectedProduct = selectedProductDoc.data();
-    const updatedItems = [...selectedItems];
-    updatedItems[index].product = selectedProduct;
-    setSelectedItems(updatedItems);
-  };    
-
-  const handleQuantityChange = (index, quantity) => {
-    const updatedItems = [...selectedItems];
-    const product = updatedItems[index].product;
-    if (product && quantity > product.quantity) {
-      alert("Entered quantity exceeds available stock.");
-    } else {
-      updatedItems[index].quantity = quantity;
-      setSelectedItems(updatedItems);
-    }
-  };
-
-  const searchProductById = async (skuId) => {
-    try {
-      const q = query(collection(db, `users/${user.uid}/products`), where("skuId", "==", skuId));
-      const querySnapshot = await getDocs(q);
-  
-      if (querySnapshot.empty) {
-        console.error(`Product with SKU ID ${skuId} not found.`);
-        return null;
-      }
-  
-      const productDoc = querySnapshot.docs[0];
-      console.log("Found Product:", productDoc.data());
-      return productDoc;
-    } catch (error) {
-      console.error("Error searching for product by SKU ID:", error);
-    }
-  };
-
-  const updateProductQuantity = async (index, quantity) => {
-    const item = selectedItems[index];
-    const product = item.product;
-  
-    if (!product) {
-      console.error(`Invalid product at index ${index}`);
+    if (!selectedProduct) {
+      alert("Please select a valid product.");
       return;
     }
   
-    const skuId = product.skuId; // Use the correct field name
-    console.log(`Searching for product with SKU ID: ${skuId}`);
-  
-    try {
-      const productDoc = await searchProductById(skuId);
-  
-      if (!productDoc) {
-        console.error(`Product with SKU ID ${skuId} not found.`);
-        return;
-      }
-  
-      const productData = productDoc.data();
-      const availableQuantity = parseInt(productData.quantity);
-      const newQuantity = availableQuantity - quantity;
-  
-      if (newQuantity < 0) {
-        alert("Not enough stock available.");
-        return;
-      }
-  
-      await updateDoc(productDoc.ref, { quantity: newQuantity });
-      console.log(`Updated ${product.name} to new quantity: ${newQuantity}`);
-    } catch (error) {
-      console.error("Error updating product quantity:", error);
+    if (newProduct.quantity > selectedProduct.quantity) {
+      alert("Entered quantity exceeds available stock.");
+      return;
     }
-  };        
+  
+    const newItem = {
+      id: selectedProduct.id,
+      name: selectedProduct.name,
+      companyName: selectedProduct.companyName || "N/A",
+      selectedQuantity: newProduct.quantity,
+      price: selectedProduct.price, // Ensure price is added
+      skuId: selectedProduct.skuId,
+      quantity: selectedProduct.quantity - newProduct.quantity, // Deduct from available quantity
+    };
+  
+    setSelectedItems((prevItems) => [...prevItems, newItem]); // Add the new item to the list
+    setNewProduct({ productId: "", quantity: 1 }); // Reset form
+    setSubtotal((prevSubtotal) => prevSubtotal + selectedProduct.price * newProduct.quantity); // Update subtotal
+  };
+  
+  const handleRemoveProduct = async (index) => {
+    const updatedItems = [...selectedItems];
+    const removedItem = updatedItems.splice(index, 1)[0];
+  
+    if (removedItem) {
+      // Ensure price and selectedQuantity are valid numbers
+      const price = Number(removedItem.price) || 0;
+      const quantity = Number(removedItem.selectedQuantity) || 0;
+  
+      // Update the subtotal safely
+      setSubtotal((prevSubtotal) => prevSubtotal - price * quantity);
+    }
+  
+    if (removedItem?.id) {
+      try {
+        const productRef = doc(db, `users/${user.uid}/products`, removedItem.id);
+        const updatedQuantity = (removedItem.quantity || 0) + (removedItem.selectedQuantity || 0);
+        await updateDoc(productRef, { quantity: updatedQuantity });
+        console.log("Stock updated successfully!");
+      } catch (error) {
+        console.error("Error updating stock:", error);
+      }
+    }
+  
+    setSelectedItems(updatedItems);
+  };
+  
+  const handleEditProduct = (index) => {
+    const itemToEdit = selectedItems[index];
+    setNewProduct({ productId: itemToEdit.id, quantity: itemToEdit.selectedQuantity });
+    handleRemoveProduct(index); // Temporarily remove the item to allow editing
+  };             
   
   const handleViewInvoice = async (invoiceID) => {
     try {
@@ -217,9 +185,11 @@ const Invoices = () => {
     const invoiceData = {
       invoiceID,
       items: selectedItems.map((item) => ({
-        product: item.product.name,
-        quantity: item.quantity,
-        unitPrice: item.product.price,
+        companyName: item.companyName,
+        product: item.name,
+        skuId: item.skuId,
+        quantity: item.selectedQuantity,
+        unitPrice: item.price,
       })),
       customerName,
       customerAddress,
@@ -233,24 +203,24 @@ const Invoices = () => {
   
     try {
       const invoicesRef = collection(db, `users/${user.uid}/invoices`);
-      const newInvoiceRef = await addDoc(invoicesRef, invoiceData);
-
-      // Add the newly created invoice to the local state
-      setInvoices((prevInvoices) => [
-        ...prevInvoices,
-        { id: newInvoiceRef.id, ...invoiceData },
-      ]);
+      await addDoc(invoicesRef, invoiceData); // Remove assignment to `newInvoiceRef`
   
-      for (const [index, item] of selectedItems.entries()) {
-        if (item.product) {
-          await updateProductQuantity(index, item.quantity);
+      // Update stock in Firestore
+      for (const item of selectedItems) {
+        const productRef = doc(db, `users/${user.uid}/products`, item.id);
+        const newQuantity = item.quantity - item.selectedQuantity;
+        if (newQuantity < 0) {
+          throw new Error(`Insufficient stock for ${item.name}.`);
         }
+        await updateDoc(productRef, { quantity: newQuantity });
       }
   
       alert("Invoice saved successfully!");
+  
+      // Redirect to the generated PDF
       generatePDF(invoiceData);
     } catch (error) {
-      console.error("Error processing invoice:", error);
+      console.error("Error saving invoice:", error);
       alert(`Error: ${error.message}`);
     }
   };
@@ -264,12 +234,13 @@ const Invoices = () => {
       items,
       subtotal,
       tax,
+      discount,
       total,
-      discount, // Fetch discount directly from the database
-      date, // Fetch the date directly from the database
+      date,
     } = invoice;
   
-    const discountAmount = (subtotal + tax) * (discount / 100);
+    const taxAmount = subtotal * (tax / 100); // Calculate tax
+    const discountAmount = subtotal * (discount / 100); // Calculate discount
   
     const htmlContent = `
       <!DOCTYPE html>
@@ -286,7 +257,7 @@ const Invoices = () => {
               <h1 class="text-3xl font-bold">Invoice</h1>
               <div class="text-right space-y-1">
                 <p><span class="font-semibold">Invoice ID:</span> ${invoiceID}</p>
-                <p class="ml-2"><span class="font-semibold">Date:</span> ${date || "N/A"}</p> <!-- Fetch date from database -->
+                <p><span class="font-semibold">Date:</span> ${date || "N/A"}</p>
               </div>
             </div>
             <p><span class="font-semibold">Customer Name:</span> ${customerName}</p>
@@ -296,6 +267,7 @@ const Invoices = () => {
               <thead>
                 <tr>
                   <th class="border border-gray-300 px-4 py-2 bg-black text-left text-white">Item</th>
+                  <th class="border border-gray-300 px-4 py-2 bg-black text-left text-white">Brand Name</th>
                   <th class="border border-gray-300 px-4 py-2 bg-black text-left text-white">Quantity</th>
                   <th class="border border-gray-300 px-4 py-2 bg-black text-left text-white">Unit Price</th>
                   <th class="border border-gray-300 px-4 py-2 bg-black text-left text-white">Total</th>
@@ -307,6 +279,7 @@ const Invoices = () => {
                     (item) => `
                     <tr>
                       <td class="border border-gray-300 px-4 py-2">${item.product}</td>
+                      <td class="border border-gray-300 px-4 py-2">${item.companyName || "N/A"}</td>
                       <td class="border border-gray-300 px-4 py-2">${item.quantity}</td>
                       <td class="border border-gray-300 px-4 py-2">₹${item.unitPrice}</td>
                       <td class="border border-gray-300 px-4 py-2">₹${(item.unitPrice * item.quantity).toFixed(2)}</td>
@@ -318,8 +291,8 @@ const Invoices = () => {
   
             <div class="total text-right mt-4 space-y-1">
               <p><span class="font-semibold">Subtotal:</span> ₹${subtotal.toFixed(2)}</p>
-              <p><span class="font-semibold">Tax (${tax}%):</span> ₹${(subtotal * (tax / 100)).toFixed(2)}</p>
-              <p><span class="font-semibold">Discount (${discount}%):</span> -₹${discountAmount.toFixed(2)}</p> <!-- Fetch discount from database -->
+              <p><span class="font-semibold">Tax (${tax}%):</span> ₹${taxAmount.toFixed(2)}</p>
+              <p><span class="font-semibold">Discount (${discount}%):</span> ₹${discountAmount.toFixed(2)}</p>
               <p><span class="font-semibold text-lg">Total Amount:</span> ₹${total.toFixed(2)}</p>
             </div>
           </div>
@@ -332,11 +305,10 @@ const Invoices = () => {
       </html>
     `;
   
-    // Open a new window and write the PDF content to it
     const newWindow = window.open("", "_blank");
     newWindow.document.write(htmlContent);
     newWindow.document.close();
-  };
+  };  
   
   return (
     <div className="flex flex-row space-x-4 p-6 bg-white shadow-lg rounded-lg">
@@ -436,8 +408,8 @@ const Invoices = () => {
   
           <div>
             <p className="text-sm font-medium text-gray-700">Subtotal: ₹{subtotal.toFixed(2)}</p>
-            <p className="text-sm font-medium text-gray-700">Tax ({tax}%): ₹{tax.toFixed(2)}</p>
-            <p className="text-sm font-medium text-gray-700">Discount: {discount}%</p>
+            <p className="text-sm font-medium text-gray-700">Tax ({tax}%): ₹{(subtotal * (tax / 100)).toFixed(2)}</p>
+            <p className="text-sm font-medium text-gray-700">Discount ({discount}%): ₹{(subtotal * (discount / 100)).toFixed(2)}</p>
             <p className="text-sm font-medium text-gray-700">Total Amount: ₹{total.toFixed(2)}</p>
           </div>
   
@@ -459,59 +431,80 @@ const Invoices = () => {
 
         <h2 className="text-2xl font-bold mb-4 text-center">Products</h2>
 
-        {/* Product selection and quantity inputs with fixed height and scrollable content */}
-        <div className="flex-1 max-h-[calc(100vh-150px)] overflow-y-auto border border-gray-300 p-4 rounded-md">
-          {selectedItems.map((item, index) => (
-            <div key={index} className="space-y-2 w-full">
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Product</label>
-                <select
-                  value={item.product?.skuId || ""}
-                  onChange={(e) => handleProductChange(index, e.target.value)}
-                  required
-                  className="mt-1 block w-full p-2 border border-gray-300 rounded-md"
-                >
-                  <option value="">Select a product</option>
-                  {products.map((product) => (
-                    <option key={product.skuId} value={product.skuId}>
-                      {product.name} - ₹{product.price} (SKU: {product.skuId}, Available: {product.quantity})
-                    </option>
-                  ))}
-                </select>
-              </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Quantity</label>
-                <input
-                  type="number"
-                  min="1"
-                  value={item.quantity}
-                  onChange={(e) => handleQuantityChange(index, Number(e.target.value))}
-                  required
-                  className="mt-1 block w-full p-2 border border-gray-300 rounded-md"
-                />
-              </div>
-
-              {index > 0 && (
-                <button
-                  type="button"
-                  onClick={() => handleRemoveProduct(index)}
-                  className="bg-red-500 text-white px-2 py-1 rounded-md"
-                >
-                  Remove
-                </button>
-              )}
+          {/* New Product Selection Section */}
+          <div className="flex flex-col mb-6">
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Product Name</label>
+              <select
+                value={newProduct.productId || ""}
+                onChange={(e) => setNewProduct({ ...newProduct, productId: e.target.value })}
+                required
+                className="mt-1 block w-full p-2 border border-gray-300 rounded-md"
+              >
+                <option value="">Select a product</option>
+                {products.map((product) => (
+                  <option key={product.id} value={product.id}>
+                    {product.skuId} - {product.companyName} {product.name} (Available: {product.quantity})
+                  </option>
+                ))}
+              </select>
             </div>
-          ))}
 
-          <button
-            type="button"
-            onClick={handleAddProduct}
-            className="w-full bg-blue-500 text-white p-2 rounded-md hover:bg-blue-600 mt-4"
-          >
-            Add More Products
-          </button>
-        </div>
+            <div className="mt-4">
+              <label className="block text-sm font-medium text-gray-700">Quantity</label>
+              <input
+                type="number"
+                min="1"
+                max={products.find((p) => p.id === newProduct.productId)?.quantity || 0}
+                value={newProduct.quantity}
+                onChange={(e) => setNewProduct({ ...newProduct, quantity: Number(e.target.value) })}
+                required
+                className="mt-1 block w-full p-2 border border-gray-300 rounded-md"
+              />
+            </div>
+
+            <button
+              type="button"
+              onClick={handleAddProduct}
+              className="w-full bg-green-500 text-white p-2 rounded-md hover:bg-green-600 mt-4"
+            >
+              ✓
+            </button>
+          </div>
+
+          {/* Canvas Area for Added Products */}
+          <div className="flex-1 max-h-[calc(100vh-150px)] overflow-y-auto border border-gray-300 p-4 rounded-md">
+            {selectedItems.length > 0 ? (
+              <ul className="space-y-4">
+                {selectedItems.map((item, index) => (
+                  <li key={index} className="flex justify-between items-center bg-gray-100 p-2 rounded-md">
+                    <span>
+                      <strong>{item.name}</strong> ({item.companyName}): {item.selectedQuantity} pcs
+                    </span>
+                    {selectedItems.length > 0 && ( // Only show buttons when items exist
+                      <div className="flex space-x-2">
+                        <button
+                          onClick={() => handleEditProduct(index)}
+                          className="bg-yellow-500 text-white px-2 py-1 rounded-md"
+                        >
+                          ✎
+                        </button>
+                        <button
+                          onClick={() => handleRemoveProduct(index)}
+                          className="bg-red-500 text-white px-2 py-1 rounded-md"
+                        >
+                          🗑
+                        </button>
+                      </div>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="text-center text-gray-500">No products added yet.</p>
+            )}
+          </div>
       </div>
 
       {/* Invoice Modal */}
