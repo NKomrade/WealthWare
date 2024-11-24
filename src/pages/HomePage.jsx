@@ -84,7 +84,7 @@ const Homepage = () => {
             </p>
             <motion.button
               onClick={() => navigate("/login")} // Redirect to login
-              className="px-8 py-3 text-white text-lg font-medium rounded-md transition duration-300 ease-in-out shadow-lg text-left"
+              className="px-8 py-3 bg-white text-black text-lg font-medium rounded-md transition duration-300 ease-in-out shadow-lg text-left"
               whileHover={{ scale: 1.1 }}
               whileTap={{ scale: 0.9 }}
             >
@@ -130,44 +130,61 @@ const Homepage = () => {
         </div>
 
         {/* Cards Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          {[
-            {
-              title: "User Friendly",
-              description: "Easy-to-use interface designed to streamline operations for all users.",
-              icon: <FaUserAlt className="text-blue-500 text-5xl mb-4" />,
-            },
-            {
-              title: "Reports & Analytics",
-              description: "Generate insightful reports and analyze your business performance.",
-              icon: <FaChartBar className="text-green-500 text-5xl mb-4" />,
-            },
-            {
-              title: "Invoice Generation",
-              description: "Create professional invoices with ease and accuracy.",
-              icon: <FaFileInvoice className="text-yellow-500 text-5xl mb-4" />,
-            },
-            {
-              title: "Inventory Management",
-              description: "Manage your inventory seamlessly with real-time updates.",
-              icon: <FaBoxes className="text-purple-500 text-5xl mb-4" />,
-            },
-            {
-              title: "Expense Tracker",
-              description: "Keep track of all your business expenses effortlessly.",
-              icon: <FaMoneyCheckAlt className="text-red-500 text-5xl mb-4" />,
-            },
-          ].map((feature, index) => (
-            <motion.div
-              key={index}
-              className="bg-white shadow-md rounded-md p-6 text-center hover:shadow-xl transition duration-300 ease-in-out transform hover:-translate-y-2"
-              variants={fadeIn}
-            >
-              <div className="flex justify-center items-center">{feature.icon}</div>
-              <h3 className="text-lg font-semibold mb-2">{feature.title}</h3>
-              <p className="text-gray-600">{feature.description}</p>
-            </motion.div>
-          ))}
+        <div className="flex flex-col items-center space-y-8">
+          {/* First Row */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            {[
+              {
+                title: "User Friendly",
+                description: "Easy-to-use interface designed to streamline operations for all users.",
+                icon: <FaUserAlt className="text-blue-500 text-5xl mb-4" />,
+              },
+              {
+                title: "Reports & Analytics",
+                description: "Generate insightful reports and analyze your business performance.",
+                icon: <FaChartBar className="text-green-500 text-5xl mb-4" />,
+              },
+              {
+                title: "Invoice Generation",
+                description: "Create professional invoices with ease and accuracy.",
+                icon: <FaFileInvoice className="text-yellow-500 text-5xl mb-4" />,
+              },
+            ].map((feature, index) => (
+              <motion.div
+                key={index}
+                className="bg-white shadow-md rounded-md p-6 text-center hover:shadow-xl transition duration-300 ease-in-out transform hover:-translate-y-2"
+              >
+                <div className="flex justify-center items-center">{feature.icon}</div>
+                <h3 className="text-lg font-semibold mb-2">{feature.title}</h3>
+                <p className="text-gray-600">{feature.description}</p>
+              </motion.div>
+            ))}
+          </div>
+
+          {/* Second Row */}
+          <div className="flex justify-center space-x-8">
+            {[
+              {
+                title: "Inventory Management",
+                description: "Manage your inventory seamlessly with real-time updates.",
+                icon: <FaBoxes className="text-purple-500 text-5xl mb-4" />,
+              },
+              {
+                title: "Expense Tracker",
+                description: "Keep track of all your business expenses effortlessly.",
+                icon: <FaMoneyCheckAlt className="text-red-500 text-5xl mb-4" />,
+              },
+            ].map((feature, index) => (
+              <motion.div
+                key={index}
+                className="bg-white shadow-md rounded-md p-6 text-center hover:shadow-xl transition duration-300 ease-in-out transform hover:-translate-y-2"
+              >
+                <div className="flex justify-center items-center">{feature.icon}</div>
+                <h3 className="text-lg font-semibold mb-2">{feature.title}</h3>
+                <p className="text-gray-600">{feature.description}</p>
+              </motion.div>
+            ))}
+          </div>
         </div>
       </motion.section>
 
