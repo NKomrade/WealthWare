@@ -18,7 +18,7 @@ const data = [
 
 export default function SalesOverview() {
   return (
-    <div className="bg-white p-6 rounded-xl shadow-md w-[900px]"> {/* Set a fixed width */}
+    <div className="bg-white p-6 rounded-xl shadow-md w-full max-w-screen-xl mx-auto"> {/* Make it full-width and centered */}
       <strong className="text-xl font-semibold text-gray-800">Sales Overview</strong>
       <div className="text-green-500 text-sm mb-4">(+5) more in 2021</div>
       <ResponsiveContainer width="100%" height={300}>

@@ -12,7 +12,10 @@ const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#FF6384', '#4BC0C0'
 export default function ExpenseTracker() {
   const [data, setData] = useState([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const { userId: contextUserId } = useProfile(); // Take userId from context if available
+  const [totalBudget, setTotalBudget] = useState(0);
+  const [editingBudget, setEditingBudget] = useState({ remaining: false, total: false });
+  const { userId: contextUserId } = useProfile();
+  const [setTotalExpenses] = useState(0); 
   const userId = contextUserId || auth.currentUser?.uid; // Fallback to auth.currentUser if needed
 
   useEffect(() => {
@@ -20,6 +23,10 @@ export default function ExpenseTracker() {
       fetchExpenses(userId);
     }
   }, [userId]);
+
+  const totalExpenses = data.reduce((acc, item) => acc + item.value, 0);
+
+  const budgetRemaining = totalBudget - totalExpenses;
 
   const fetchExpenses = async (userId) => {
     console.log("Fetching expenses for userId:", userId);
@@ -29,8 +36,29 @@ export default function ExpenseTracker() {
       const expensesData = expensesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       console.log("Fetched expenses data:", expensesData);
       setData(expensesData);
+
+      // Calculate the total expenses from the fetched data
+      const total = expensesData.reduce((acc, item) => acc + item.value, 0);
+      setTotalExpenses(total);  // Update the total expenses
     } catch (error) {
       console.error("Error fetching expenses:", error);
+    }
+  };
+
+  const handleBudgetChange = (e, type) => {
+    const value = parseFloat(e.target.value);
+    if (type === 'total') {
+      setTotalBudget(value);  // Update total budget
+    }
+  };
+
+  const handleBudgetSubmit = (type) => {
+    if (type === 'remaining') {
+      setEditingBudget((prevState) => ({ ...prevState, remaining: false }));
+      // Optionally save this value in Firestore if needed
+    } else if (type === 'total') {
+      setEditingBudget((prevState) => ({ ...prevState, total: false }));
+      // Optionally save this value in Firestore if needed
     }
   };
 
@@ -83,17 +111,48 @@ export default function ExpenseTracker() {
       console.error("Error processing expenses:", error);
     }
   };
-    
-
-  const totalExpenses = data.reduce((acc, item) => acc + item.value, 0);
 
   return (
     <div className="p-6 min-h-screen grid grid-cols-2 gap-6">
       {/* Overview Section */}
       <div className="grid grid-cols-4 gap-4 mb-6 col-span-2">
         <OverviewCard title="Total Expenses" value={`₹${totalExpenses}`} color="bg-white" icon={<FaMoneyBill />} />
-        <OverviewCard title="Budget Remaining" value="₹2000" color="bg-white" icon={<GiWallet />} />
-        <OverviewCard title="Total Savings" value="₹1000" color="bg-white" icon={<MdSavings />} />
+        <OverviewCard
+          title="Budget Remaining"
+          value={editingBudget.remaining ? (
+            <input
+              type="number"
+              value={budgetRemaining}
+              onChange={(e) => handleBudgetChange(e, 'remaining')}
+              onBlur={() => handleBudgetSubmit('remaining')}
+              className={`w-full p-2 border rounded-lg ${budgetRemaining < 0 ? 'border-red-500' : ''}`}
+            />
+          ) : (
+            <div onClick={() => setEditingBudget({ ...editingBudget, remaining: true })}>
+              <p className={budgetRemaining < 0 ? 'text-red-500' : ''}>{`₹${budgetRemaining}`}</p>
+            </div>
+          )}
+          color="bg-white"
+          icon={<GiWallet />}
+        />
+        <OverviewCard
+          title="Total Budget"
+          value={editingBudget.total ? (
+            <input
+              type="number"
+              value={totalBudget}
+              onChange={(e) => handleBudgetChange(e, 'total')}
+              onBlur={() => handleBudgetSubmit('total')}
+              className={`w-full p-2 border rounded-lg ${totalBudget < 0 ? 'border-red-500' : ''}`}
+            />
+          ) : (
+            <div onClick={() => setEditingBudget({ ...editingBudget, total: true })}>
+              <p className={totalBudget < 0 ? 'text-red-500' : ''}>{`₹${totalBudget}`}</p>
+            </div>
+          )}
+          color="bg-white"
+          icon={<MdSavings />}
+        />
         <OverviewCard title="Total Categories" value={data.length} color="bg-white" icon={<MdCategory />} />
       </div>
 
@@ -152,9 +211,6 @@ export default function ExpenseTracker() {
               onClick={() => setIsModalOpen(true)}
             >
               + Add expenses
-            </button>
-            <button className="text-white bg-red-500 px-3 py-2 rounded hover:bg-red-600">
-              Download report
             </button>
           </div>
       </div>

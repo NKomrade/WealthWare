@@ -1,6 +1,6 @@
 import React, { Fragment, useEffect, useState } from 'react';
 import { Menu, Transition } from '@headlessui/react';
-import { FiSearch, FiChevronDown } from 'react-icons/fi';
+import { FiChevronDown } from 'react-icons/fi';
 import { IoMdPerson } from 'react-icons/io';
 import classNames from 'classnames';
 import { useNavigate } from 'react-router-dom';
@@ -58,20 +58,13 @@ export default function Header() {
 
   return (
     <div className="bg-white h-16 px-6 flex items-center border-b border-gray-200 justify-between">
-      {/* Search Bar */}
-      <div className="relative">
-        <div className="relative flex items-center">
-          <FiSearch className="text-gray-400 absolute left-3 h-5 w-5" />
-          <input
-            type="text"
-            placeholder="Search here..."
-            className="text-sm focus:outline-none active:outline-none h-10 pl-11 pr-4 rounded-full bg-gray-50 w-[280px]"
-          />
-        </div>
+      {/* Left Section (Optional: You can add your logo or other items here) */}
+      <div className="flex-1">
+        {/* Placeholder for left content (logo, etc.) */}
       </div>
 
-      {/* Profile Menu */}
-      <div className="flex items-center gap-2">
+      {/* Profile Menu shifted to the right */}
+      <div className="flex items-center gap-2 justify-end">
         <Menu as="div" className="relative">
           <Menu.Button className="flex items-center gap-2 focus:outline-none">
             <div className="flex items-center">
